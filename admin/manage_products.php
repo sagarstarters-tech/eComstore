@@ -1,4 +1,42 @@
 <?php
+// Handle AJAX actions before HTML output
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['delete_gallery_image', 'toggle_trending'])) {
+    include_once __DIR__ . '/../includes/session_setup.php';
+    include_once __DIR__ . '/../includes/db_connect.php';
+    
+    header('Content-Type: application/json');
+    
+    // Auth Check
+    if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        echo json_encode(['success' => false, 'error' => 'Permission denied']);
+        exit;
+    }
+
+    $action = $_POST['action'];
+    if ($action === 'delete_gallery_image') {
+        $img_id = intval($_POST['image_id']);
+        $img_q = $conn->query("SELECT image FROM product_images WHERE id=$img_id")->fetch_assoc();
+        if ($img_q && $img_q['image'] && file_exists('../assets/images/'.$img_q['image'])) {
+            unlink('../assets/images/'.$img_q['image']);
+        }
+        if ($conn->query("DELETE FROM product_images WHERE id=$img_id")) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => $conn->error]);
+        }
+        exit;
+    } elseif ($action === 'toggle_trending') {
+        $id = intval($_POST['id']);
+        if ($conn->query("UPDATE products SET is_trending = 1 - is_trending WHERE id=$id")) {
+            $updated = $conn->query("SELECT is_trending FROM products WHERE id=$id")->fetch_assoc();
+            echo json_encode(['success' => true, 'is_trending' => $updated['is_trending']]);
+        } else {
+            echo json_encode(['success' => false, 'error' => $conn->error]);
+        }
+        exit;
+    }
+}
+
 include 'admin_header.php';
 require_once '../includes/SeoRepository.php';
 $seoRepo = new SeoRepository($conn);
@@ -213,20 +251,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $conn->query("DELETE FROM products WHERE id=$id");
         $success = "Product deleted successfully.";
-    } elseif ($action === 'delete_gallery_image') {
-        $img_id = intval($_POST['image_id']);
-        $img_q = $conn->query("SELECT image FROM product_images WHERE id=$img_id")->fetch_assoc();
-        if ($img_q && $img_q['image'] && file_exists('../assets/images/'.$img_q['image'])) {
-            unlink('../assets/images/'.$img_q['image']);
-        }
-        $conn->query("DELETE FROM product_images WHERE id=$img_id");
-        echo json_encode(['success' => true]);
-        exit;
-    } elseif ($action === 'toggle_trending') {
-        $id = intval($_POST['id']);
-        $conn->query("UPDATE products SET is_trending = 1 - is_trending WHERE id=$id");
-        echo json_encode(['success' => true, 'new_status' => true]); // Status isn't strictly needed for response but good for future
-        exit;
     }
 }
 
@@ -927,8 +951,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             method: 'POST',
                             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                             body: 'action=delete_gallery_image&image_id=' + imgId
-                        }).then(() => {
-                            document.getElementById('gal_img_' + imgId).remove();
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                const el = document.getElementById('gal_img_' + imgId);
+                                if (el) el.remove();
+                            } else {
+                                alert('Error: ' + (data.error || 'Failed to delete image.'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Logout or session issue?', err);
+                            alert('Failed to connect to server. Please refresh.');
                         });
                     }
                 });
