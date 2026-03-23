@@ -192,7 +192,7 @@ $active_tab = $_GET['tab'] ?? 'colors';
                                     <div style="background:<?php echo $theme['theme_card_bg']; ?>; border-radius:8px; padding:12px; margin-bottom:8px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
                                         <div style="font-size:13px; color:<?php echo $theme['theme_text_color']; ?>; font-weight:600; margin-bottom:4px;">Card Title</div>
                                         <div style="font-size:11px; color:<?php echo $theme['theme_secondary_color']; ?>;">Secondary text sample</div>
-                                        <a href="#" class="preview-footer-link" style="font-size:11px; color:<?php echo $theme['theme_footer_link_color']; ?>; text-decoration:none;">Link text →</a>
+                                        <a href="#" class="preview-body-link" style="font-size:11px; color:<?php echo $theme['theme_link_color']; ?>; text-decoration:none;">Link text →</a>
                                     </div>
                                 </div>
                                 <!-- Mini Footer -->
@@ -598,6 +598,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (key === 'theme_text_color') {
             pf.style.color = hex;
+        }
+        if (key === 'theme_link_color') {
+             pb.querySelectorAll('.preview-body-link').forEach(el => el.style.color = hex);
         }
 
         // Also update the live iframe via postMessage

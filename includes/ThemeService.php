@@ -206,11 +206,11 @@ body {
     font-family: var(--font-family) !important;
     font-size: var(--font-size) !important;
 }
-a:not(.btn):not(.nav-link):not(.dropdown-item):not(.navbar-brand):not(.dropdown-toggle):not([class*='badge']):not(.text-reset):not(.page-link):not(.list-group-item) {
+a:not(.btn):not(.dropdown-item):not([class*='badge']):not(.text-reset):not(.page-link):not(.list-group-item) {
     color: var(--link-color);
 }
-a:not(.btn):not(.nav-link):not(.dropdown-item):not(.navbar-brand):not(.dropdown-toggle):not([class*='badge']):not(.text-reset):not(.page-link):not(.list-group-item):hover {
-    color: var(--btn-hover);
+a:not(.btn):not(.dropdown-item):not([class*='badge']):not(.text-reset):not(.page-link):not(.list-group-item):hover {
+    color: var(--primary);
 }
 /* Ensure all button variants always show readable text */
 a.btn-primary, a.btn-primary:hover,
