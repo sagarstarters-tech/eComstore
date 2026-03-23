@@ -2,12 +2,29 @@
 // phonepe_success.php
 include 'includes/header.php';
 
-// Use $_REQUEST as we switched to GET to preserve sessions on cross-site redirect
+// ── Extract Transaction IDs Robustly (Redirect Flow) ──────────
+$merchantTransactionId = $_REQUEST['merchantTransactionId'] ?? $_REQUEST['transactionId'] ?? '';
 $code = $_REQUEST['code'] ?? '';
-$merchantTransactionId = isset($_REQUEST['transactionId']) ? $conn->real_escape_string($_REQUEST['transactionId']) : '';
 $amount = $_REQUEST['amount'] ?? 0;
 
-if ($code === 'PAYMENT_SUCCESS') {
+// PhonePe often sends a base64 encoded 'response' parameter containing the full status
+if (isset($_REQUEST['response'])) {
+    $res_payload = json_decode(base64_decode($_REQUEST['response']), true);
+    if ($res_payload) {
+        if (empty($code)) $code = $res_payload['code'] ?? '';
+        if (empty($merchantTransactionId)) {
+            $merchantTransactionId = $res_payload['data']['merchantTransactionId'] ?? $res_payload['data']['transactionId'] ?? '';
+        }
+        if (empty($amount)) $amount = $res_payload['data']['amount'] ?? 0;
+    }
+}
+
+$merchantTransactionId = $conn->real_escape_string($merchantTransactionId);
+
+// Log the redirect request for debugging if it's the first time
+// file_put_contents('logs/phonepe_redirect.log', "[" . date('Y-m-d H:i:s') . "] REDIRECT: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+
+if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') {
     // Clear cart since payment succeeded
     if (isset($_SESSION['cart'])) {
         unset($_SESSION['cart']);

@@ -2,7 +2,16 @@
 // phonepe_failure.php
 include 'includes/header.php';
 
-$raw_transactionId = $_GET['transactionId'] ?? $_POST['transactionId'] ?? 'Unknown';
+$raw_transactionId = $_REQUEST['merchantTransactionId'] ?? $_REQUEST['transactionId'] ?? 'Unknown';
+
+// Handle base64 response in failure redirect as well
+if ($raw_transactionId === 'Unknown' && isset($_REQUEST['response'])) {
+    $res_payload = json_decode(base64_decode($_REQUEST['response']), true);
+    if ($res_payload) {
+        $raw_transactionId = $res_payload['data']['merchantTransactionId'] ?? $res_payload['data']['transactionId'] ?? 'Unknown';
+    }
+}
+
 $merchantTransactionId = ($raw_transactionId !== 'Unknown') ? $conn->real_escape_string($raw_transactionId) : 'Unknown';
 
 // Try to grab the order ID if possible to offer a retry link
