@@ -27,29 +27,32 @@
 .hero-slider[data-transition="slide"] .hero-slide.active { transform: translateX(0); } 
 .hero-slider[data-transition="slide"] .hero-slide.prev-slide { transform: translateX(-100%); } 
 
-/* Zoom: Balanced growing zoom */
-.hero-slider[data-transition="zoom"] .hero-slide { 
-    transform: scale(0.85);
-    transition: transform var(--transition-speed) cubic-bezier(0.165, 0.84, 0.44, 1), opacity var(--transition-speed), visibility var(--transition-speed); 
-}
-.hero-slider[data-transition="zoom"] .hero-slide.active { 
-    transform: scale(1);
+/* Zoom Transitions (Improved: Targets Background Only) */
+.hero-slider[data-transition="zoom"] .hero-bg,
+.hero-slider[data-transition="zoom-in"] .hero-bg,
+.hero-slider[data-transition="zoom-out"] .hero-bg {
+    transition: transform var(--transition-speed) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.hero-slider[data-transition="zoom-in"] .hero-slide { 
-    transform: scale(0.8);
-    transition: transform var(--transition-speed) cubic-bezier(0.165, 0.84, 0.44, 1), opacity var(--transition-speed), visibility var(--transition-speed); 
+.hero-slider[data-transition="zoom"] .hero-slide .hero-bg { 
+    transform: scale(1.15); 
 }
-.hero-slider[data-transition="zoom-in"] .hero-slide.active { 
-    transform: scale(1);
+.hero-slider[data-transition="zoom"] .hero-slide.active .hero-bg { 
+    transform: scale(1); 
 }
 
-.hero-slider[data-transition="zoom-out"] .hero-slide { 
-    transform: scale(1.5);
-    transition: transform var(--transition-speed) cubic-bezier(0.165, 0.84, 0.44, 1), opacity var(--transition-speed), visibility var(--transition-speed); 
+.hero-slider[data-transition="zoom-in"] .hero-slide .hero-bg { 
+    transform: scale(0.75); 
 }
-.hero-slider[data-transition="zoom-out"] .hero-slide.active { 
-    transform: scale(1);
+.hero-slider[data-transition="zoom-in"] .hero-slide.active .hero-bg { 
+    transform: scale(1); 
+}
+
+.hero-slider[data-transition="zoom-out"] .hero-slide .hero-bg { 
+    transform: scale(1.6); 
+}
+.hero-slider[data-transition="zoom-out"] .hero-slide.active .hero-bg { 
+    transform: scale(1); 
 }
 
 .hero-slide .text-animation { opacity: 0; } 
