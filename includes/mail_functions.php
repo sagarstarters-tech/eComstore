@@ -124,6 +124,11 @@ function getMailerInstance($conn = null) {
     $mail->SMTPSecure = $secure;
     $mail->Port       = $port;
     
+    // Explicitly set SMTP properties for better reliability on Hostinger/restricted hosts
+    if ($port === 465 || $secure === 'ssl') {
+        $mail->SMTPAutoTLS = false; // Prevents conflicting STARTTLS attempts on SSL port
+    }
+    
     // Bypass SSL certificate verification for local environments (like XAMPP)
     $mail->SMTPOptions = array(
         'ssl' => array(

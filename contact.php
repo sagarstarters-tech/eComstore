@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result['success']) {
         $success = htmlspecialchars($global_settings['contact_success_msg'] ?? 'Thank you for reaching out! We will get back to you shortly.');
     } else {
-        $error = "Sorry, there was a problem sending your message. Please try again later or contact us directly.";
+        $error = "Sorry, there was a problem sending your message. Error Details: " . $result['error'];
     }
     }
 }
