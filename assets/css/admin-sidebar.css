@@ -1,0 +1,129 @@
+/* 
+ * Admin Sidebar - Modern SaaS Styling
+ */
+
+:root {
+    --sidebar-bg: #1e293b;
+    --sidebar-hover: #334155;
+    --sidebar-active: #2563eb;
+    --sidebar-text: #94a3b8;
+    --sidebar-text-active: #ffffff;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 80px;
+    --transition-speed: 0.3s;
+}
+
+.admin-sidebar {
+    width: var(--sidebar-width);
+    min-height: 100vh;
+    background-color: var(--sidebar-bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: all var(--transition-speed);
+    z-index: 1050;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sidebar-hover) transparent;
+}
+
+.admin-sidebar::-webkit-scrollbar { width: 4px; }
+.admin-sidebar::-webkit-scrollbar-thumb { background: var(--sidebar-hover); border-radius: 4px; }
+
+.admin-sidebar-logo {
+    padding: 1.5rem 1.25rem;
+    background: #0f172a;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-sidebar .list-group-item {
+    color: var(--sidebar-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 12px 24px;
+    border: none !important;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 0;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.admin-sidebar .list-group-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.admin-sidebar .list-group-item:hover {
+    background-color: var(--sidebar-hover) !important;
+    color: var(--sidebar-text-active) !important;
+}
+
+.admin-sidebar .list-group-item.active {
+    background-color: rgba(37, 99, 235, 0.1) !important;
+    color: var(--sidebar-text-active) !important;
+    border-left: 4px solid var(--sidebar-active) !important;
+    font-weight: 600;
+}
+
+/* Submenu Styling */
+.admin-sidebar .collapse .list-group-item {
+    padding-left: 52px;
+    font-size: 0.85rem;
+}
+
+.admin-sidebar .collapse .collapse .list-group-item {
+    padding-left: 72px;
+}
+
+/* Arrow Rotation */
+.admin-sidebar [data-mdb-toggle="collapse"] .fa-chevron-down {
+    transition: transform 0.3s;
+}
+
+.admin-sidebar [data-mdb-toggle="collapse"][aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* Mobile Sidebar Drawer & Responsive Transition */
+@media (max-width: 991.98px) {
+    .admin-sidebar {
+        transform: translateX(-100%);
+    }
+    .admin-sidebar.show {
+        transform: translateX(0);
+        width: 280px;
+    }
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+    background: none;
+    border: none;
+    color: #1e293b;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+    color: var(--sidebar-active);
+}
+
+@media (max-width: 991.98px) {
+    .sidebar-toggle-btn {
+        display: flex;
+    }
+}

@@ -1,0 +1,18 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /includes/
+Disallow: /config/
+Disallow: /user/login.php
+Disallow: /user/register.php
+Disallow: /cart.php
+Disallow: /checkout.php
+Disallow: /payment-gateways/
+Disallow: /shipping_module_src/
+Disallow: /tracking_module_src/
+Disallow: /debug_*.php
+Disallow: /verify_*.php
+Disallow: /check_*.php
+Disallow: /test_*.php
+Allow: /assets/
+
+Sitemap: https://www.sagarstarters.com/sitemap.xml

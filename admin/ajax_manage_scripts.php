@@ -1,0 +1,38 @@
+<?php
+include_once __DIR__ . '/../includes/session_setup.php';
+require_once __DIR__ . '/../includes/db_connect.php';
+require_once __DIR__ . '/../includes/ScriptController.php';
+
+// Security check: Only admins can access
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header('HTTP/1.1 403 Forbidden');
+    echo json_encode(['error' => 'Permission denied']);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    $controller = new ScriptController($conn);
+
+    header('Content-Type: application/json');
+
+    try {
+        if ($action === 'save_scripts') {
+            $data = [
+                'header_code' => $_POST['header_code'] ?? '',
+                'footer_code' => $_POST['footer_code'] ?? '',
+                'google_verification' => $_POST['google_verification'] ?? '',
+                'bing_verification' => $_POST['bing_verification'] ?? '',
+                'custom_verification' => $_POST['custom_verification'] ?? '',
+                'txt_instructions' => $_POST['txt_instructions'] ?? ''
+            ];
+            $result = $controller->saveScripts($data);
+            echo json_encode($result);
+        } else {
+            echo json_encode(['error' => 'Invalid action']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit;
+}

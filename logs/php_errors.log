@@ -1,0 +1,135 @@
+[09-Mar-2026 20:30:45 Asia/Kolkata] PHP Warning:  Undefined array key "phone" in C:\xampp\htdocs\store\admin\order_details.php on line 155
+[09-Mar-2026 20:30:45 Asia/Kolkata] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in C:\xampp\htdocs\store\admin\order_details.php on line 155
+[09-Mar-2026 20:31:14 Asia/Kolkata] PHP Warning:  Undefined array key "phone" in C:\xampp\htdocs\store\admin\order_details.php on line 155
+[09-Mar-2026 20:31:14 Asia/Kolkata] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in C:\xampp\htdocs\store\admin\order_details.php on line 155
+[11-Mar-2026 11:47:01 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'setting_id' in 'field list' in C:\xampp\htdocs\store\tmp_smtp_migration.php:18
+Stack trace:
+#0 C:\xampp\htdocs\store\tmp_smtp_migration.php(18): mysqli->prepare('SELECT setting_...')
+#1 {main}
+  thrown in C:\xampp\htdocs\store\tmp_smtp_migration.php on line 18
+[14-Mar-2026 06:59:08 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: No connection could be made because the target machine actively refused it in C:\xampp\htdocs\store\includes\db_connect.php:29
+Stack trace:
+#0 C:\xampp\htdocs\store\includes\db_connect.php(29): mysqli->__construct('localhost', 'root', Object(SensitiveParameterValue), 'ecommerce_db', 3306)
+#1 C:\xampp\htdocs\store\check_schema.php(3): require('C:\\xampp\\htdocs...')
+#2 {main}
+  thrown in C:\xampp\htdocs\store\includes\db_connect.php on line 29
+[14-Mar-2026 07:52:51 Europe/Berlin] PHP Fatal error:  Uncaught Error: Call to undefined function store_url() in C:\xampp\htdocs\store\debug_urls.php:7
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\store\debug_urls.php on line 7
+[17-Mar-2026 05:46:18 Europe/Berlin] PHP Warning:  Constant SITE_URL_TEST already defined in C:\xampp\htdocs\store\test_og_url.php on line 6
+[17-Mar-2026 05:46:18 Europe/Berlin] PHP Warning:  Constant SITE_URL_TEST already defined in C:\xampp\htdocs\store\test_og_url.php on line 6
+[17-Mar-2026 05:46:18 Europe/Berlin] PHP Warning:  Constant SITE_URL_TEST already defined in C:\xampp\htdocs\store\test_og_url.php on line 6
+[17-Mar-2026 05:46:18 Europe/Berlin] PHP Warning:  Constant SITE_URL_TEST already defined in C:\xampp\htdocs\store\test_og_url.php on line 6
+[17-Mar-2026 10:42:31 Asia/Kolkata] PHP Warning:  Constant SITE_URL already defined in C:\xampp\htdocs\store\debug_og.php on line 24
+[17-Mar-2026 10:43:11 Asia/Kolkata] PHP Warning:  Constant SITE_URL already defined in C:\xampp\htdocs\store\test_header_output.php on line 17
+[17-Mar-2026 10:43:11 Asia/Kolkata] PHP Warning:  Constant ASSETS_URL already defined in C:\xampp\htdocs\store\test_header_output.php on line 18
+[17-Mar-2026 11:16:33 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'title' in 'where clause' in C:\xampp\htdocs\store\search_shope_slides.php:6
+Stack trace:
+#0 C:\xampp\htdocs\store\search_shope_slides.php(6): mysqli->query('SELECT * FROM b...')
+#1 {main}
+  thrown in C:\xampp\htdocs\store\search_shope_slides.php on line 6
+[19-Mar-2026 15:56:15 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'image' in 'field list' in C:\xampp\htdocs\store\tmp\seed_about.php:17
+Stack trace:
+#0 C:\xampp\htdocs\store\tmp\seed_about.php(17): mysqli->query('INSERT INTO doc...')
+#1 {main}
+  thrown in C:\xampp\htdocs\store\tmp\seed_about.php on line 17
+[22-Mar-2026 10:06:55 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[22-Mar-2026 12:01:35 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[22-Mar-2026 12:10:17 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[22-Mar-2026 13:45:37 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[22-Mar-2026 14:52:28 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[22-Mar-2026 15:14:12 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[22-Mar-2026 16:20:52 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'status' in 'WHERE' in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php:42
+Stack trace:
+#0 /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php(42): mysqli->query()
+#1 {main}
+  thrown in /home/u902894566/domains/sagarstarters.com/public_html/sitemap.php on line 42
+[23-Mar-2026 03:25:39 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u902894566_store'@'localhost' (using password: YES) in D:\Sagar Store Backup 22-3-26\H-Panel Backup\eComstore\includes\db_connect.php:30
+Stack trace:
+#0 D:\Sagar Store Backup 22-3-26\H-Panel Backup\eComstore\includes\db_connect.php(30): mysqli->__construct('localhost', 'u902894566_stor...', Object(SensitiveParameterValue), 'u902894566_stor...', 3306)
+#1 D:\Sagar Store Backup 22-3-26\H-Panel Backup\eComstore\includes\header.php(5): include('D:\\Sagar Store ...')
+#2 D:\Sagar Store Backup 22-3-26\H-Panel Backup\eComstore\index.php(2): include('D:\\Sagar Store ...')
+#3 {main}
+  thrown in D:\Sagar Store Backup 22-3-26\H-Panel Backup\eComstore\includes\db_connect.php on line 30
+[23-Mar-2026 03:51:29 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u902894566_store'@'localhost' (using password: YES) in C:\xampp\htdocs\eComstore\includes\db_connect.php:30
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(30): mysqli->__construct('localhost', 'u902894566_stor...', Object(SensitiveParameterValue), 'u902894566_stor...', 3306)
+#1 C:\xampp\htdocs\eComstore\includes\header.php(5): include('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 30
+[23-Mar-2026 03:51:39 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user 'u902894566_store'@'localhost' (using password: YES) in C:\xampp\htdocs\eComstore\includes\db_connect.php:30
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(30): mysqli->__construct('localhost', 'u902894566_stor...', Object(SensitiveParameterValue), 'u902894566_stor...', 3306)
+#1 C:\xampp\htdocs\eComstore\includes\header.php(5): include('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 30
+[23-Mar-2026 04:03:59 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'ecomstore_db.settings' doesn't exist in C:\xampp\htdocs\eComstore\includes\db_connect.php:46
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(46): mysqli->query('SELECT setting_...')
+#1 C:\xampp\htdocs\eComstore\includes\header.php(5): include('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 46
+[23-Mar-2026 04:04:29 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'ecomstore_db.settings' doesn't exist in C:\xampp\htdocs\eComstore\includes\db_connect.php:46
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(46): mysqli->query('SELECT setting_...')
+#1 C:\xampp\htdocs\eComstore\admin\admin_header.php(11): include_once('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\admin\manage_products.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 46
+[23-Mar-2026 04:05:09 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'ecomstore_db.settings' doesn't exist in C:\xampp\htdocs\eComstore\includes\db_connect.php:46
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(46): mysqli->query('SELECT setting_...')
+#1 C:\xampp\htdocs\eComstore\includes\header.php(5): include('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 46
+[23-Mar-2026 04:05:21 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'ecomstore_db.settings' doesn't exist in C:\xampp\htdocs\eComstore\includes\db_connect.php:46
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(46): mysqli->query('SELECT setting_...')
+#1 C:\xampp\htdocs\eComstore\includes\header.php(5): include('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 46
+[23-Mar-2026 04:05:35 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'ecomstore_db.settings' doesn't exist in C:\xampp\htdocs\eComstore\includes\db_connect.php:46
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\db_connect.php(46): mysqli->query('SELECT setting_...')
+#1 C:\xampp\htdocs\eComstore\includes\header.php(5): include('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#3 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\db_connect.php on line 46
+[23-Mar-2026 03:10:07 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Table 'ecomstore_db.seo_settings' doesn't exist in C:\xampp\htdocs\eComstore\includes\SeoRepository.php:19
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\includes\SeoRepository.php(19): mysqli->query('SELECT setting_...')
+#1 C:\xampp\htdocs\eComstore\includes\SeoService.php(10): SeoRepository->getGlobalSettings()
+#2 C:\xampp\htdocs\eComstore\includes\header.php(43): SeoService->__construct(Object(mysqli))
+#3 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
+#4 {main}
+  thrown in C:\xampp\htdocs\eComstore\includes\SeoRepository.php on line 19

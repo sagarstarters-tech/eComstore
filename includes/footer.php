@@ -1,0 +1,222 @@
+<footer style="background-color: var(--footer-bg, #ebebeb); color: var(--text-color, #333);" class="pt-5 pb-3">
+<?php
+// Handle subscription form
+$sub_msg = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
+    $email = $conn->real_escape_string(trim($_POST['subscribe_email']));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $sub_msg = '<div class="alert alert-danger mt-2 py-1 small">Invalid email address.</div>';
+    } else {
+        // Create table if not exists
+        $conn->query("CREATE TABLE IF NOT EXISTS subscribers (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
+        
+        $insert_q = "INSERT IGNORE INTO subscribers (email) VALUES ('$email')";
+        if ($conn->query($insert_q)) {
+            $sub_msg = '<div class="alert alert-success mt-2 py-1 small">Subscribed successfully!</div>';
+        } else {
+            $sub_msg = '<div class="alert alert-warning mt-2 py-1 small">You are already subscribed.</div>';
+        }
+    }
+}
+?>
+  <div class="container">
+    <div class="row mb-5 mt-3">
+        <!-- Column 1: Brand & Slogan -->
+        <div class="col-lg-4 col-md-6 mb-4 pe-lg-5">
+            <?php if (!isset($global_settings['show_footer_logo']) || $global_settings['show_footer_logo'] == '1'): ?>
+                <img src="<?php echo ASSETS_URL; ?>/images/<?php echo htmlspecialchars($global_settings['footer_logo_image'] ?? 'logo.jpg'); ?>" alt="Sagar Starter's" style="height: <?php echo htmlspecialchars($global_settings['footer_logo_height'] ?? '45'); ?>px; width: auto; object-fit: contain;" class="mb-4">
+            <?php else: ?>
+                <h4 class="fw-bold mb-3 text-dark">Sagar Starter's</h4>
+            <?php endif; ?>
+            
+            <?php if(!empty($global_settings['footer_text'])): ?>
+                <p class="small mb-3"><?php echo nl2br(htmlspecialchars($global_settings['footer_text'])); ?></p>
+            <?php endif; ?>
+            
+
+        </div>
+        
+        <!-- Column 2: Footer 1 / For Him -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <h5 class="mb-4 fw-normal"><?php echo htmlspecialchars($global_settings['footer_col2_title'] ?? 'For Him'); ?></h5>
+            <ul class="list-unstyled">
+                <?php
+                $f1_q = $conn->query("SELECT * FROM menus WHERE menu_location IN ('footer1', 'both1') ORDER BY order_index ASC");
+                if ($f1_q && $f1_q->num_rows > 0) {
+                    while($f1 = $f1_q->fetch_assoc()) {
+                        $f1_url = $f1['url'];
+                        // Prepend SITE_URL to relative URLs (starting with /) so they work in subdirectories like /store
+                        if (!empty($f1_url) && $f1_url[0] === '/' && !preg_match('#^https?://#i', $f1_url)) {
+                            $f1_url = rtrim(SITE_URL, '/') . $f1_url;
+                        }
+                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f1_url).'" class="text-decoration-none">'.htmlspecialchars($f1['name']).'</a></li>';
+                    }
+                } else {
+                    echo '<li class="text-muted small">No links added.</li>';
+                }
+                ?>
+            </ul>
+        </div>
+        
+        <!-- Column 3: Footer 2 / Support -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <h5 class="mb-4 fw-normal"><?php echo htmlspecialchars($global_settings['footer_col3_title'] ?? 'Support'); ?></h5>
+            <ul class="list-unstyled">
+                <?php
+                $f2_q = $conn->query("SELECT * FROM menus WHERE menu_location IN ('footer2', 'both2') ORDER BY order_index ASC");
+                if ($f2_q && $f2_q->num_rows > 0) {
+                    while($f2 = $f2_q->fetch_assoc()) {
+                        $f2_url = $f2['url'];
+                        // Prepend SITE_URL to relative URLs (starting with /) so they work in subdirectories like /store
+                        if (!empty($f2_url) && $f2_url[0] === '/' && !preg_match('#^https?://#i', $f2_url)) {
+                            $f2_url = rtrim(SITE_URL, '/') . $f2_url;
+                        }
+                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f2_url).'" class="text-decoration-none">'.htmlspecialchars($f2['name']).'</a></li>';
+                    }
+                } else {
+                    echo '<li class="text-muted small">No links added.</li>';
+                }
+                ?>
+            </ul>
+        </div>
+        
+        <!-- Column 4: Send Me -->
+        <div class="col-lg-2 col-md-6 mb-4">
+            <h5 class="mb-4 fw-normal"><?php echo htmlspecialchars($global_settings['footer_col4_title'] ?? 'Send Me'); ?></h5>
+            <ul class="list-unstyled">
+                <?php
+                $f3_q = $conn->query("SELECT * FROM menus WHERE menu_location IN ('footer3', 'both3') ORDER BY order_index ASC");
+                if ($f3_q && $f3_q->num_rows > 0) {
+                    while($f3 = $f3_q->fetch_assoc()) {
+                        $f3_url = $f3['url'];
+                        // Prepend SITE_URL to relative URLs (starting with /) so they work in subdirectories like /store
+                        if (!empty($f3_url) && $f3_url[0] === '/' && !preg_match('#^https?://#i', $f3_url)) {
+                            $f3_url = rtrim(SITE_URL, '/') . $f3_url;
+                        }
+                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f3_url).'" class="text-decoration-none">'.htmlspecialchars($f3['name']).'</a></li>';
+                    }
+                } else {
+                    echo '<li class="text-muted small">No links added.</li>';
+                }
+                ?>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Footer Bottom -->
+    <div class="row border-top pt-4 align-items-center" style="border-color: #dbdbdb !important;">
+        <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+            <span class="small">
+                <?php echo $global_settings['footer_copyright'] ?? ("Copyright &copy; " . date("Y") . " Sagar Starter's. Powered by Sagar Starter's."); ?>
+            </span>
+        </div>
+        <div class="col-md-6 text-center text-md-end">
+            <?php if(!empty($global_settings['social_facebook'])): ?>
+                <a href="<?php echo htmlspecialchars($global_settings['social_facebook']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-facebook-f"></i></a>
+            <?php endif; ?>
+            
+            <?php if(!empty($global_settings['social_twitter'])): ?>
+                <a href="<?php echo htmlspecialchars($global_settings['social_twitter']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-twitter"></i></a>
+            <?php endif; ?>
+            
+            <?php if(!empty($global_settings['social_instagram'])): ?>
+                <a href="<?php echo htmlspecialchars($global_settings['social_instagram']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-instagram"></i></a>
+            <?php endif; ?>
+            
+            <?php if(!empty($global_settings['social_linkedin'])): ?>
+                <a href="<?php echo htmlspecialchars($global_settings['social_linkedin']); ?>" target="_blank" class="text-dark"><i class="fab fa-linkedin-in"></i></a>
+            <?php endif; ?>
+        </div>
+    </div>
+  </div>
+</footer>
+
+<!-- MDB JS -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.0/mdb.min.js" defer></script>
+
+<!-- Custom JS -->
+<script src="<?php echo ASSETS_URL; ?>/js/main.js" defer></script>
+<!-- Animations Custom JS -->
+<script src="<?php echo ASSETS_URL; ?>/js/animations.js" defer></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show Password Toggle Logic
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('show-password-toggle')) {
+            // Find the nearest container that might hold the password field (mb-3, mb-4, or same parent)
+            const parent = e.target.closest('.mb-3') || e.target.closest('.mb-4') || e.target.parentElement;
+            const input = parent.querySelector('input[type="password"], input[data-show-pw="true"]');
+            
+            if (input) {
+                if (e.target.checked) {
+                    input.type = 'text';
+                    input.setAttribute('data-show-pw', 'true'); // track it if it has been toggled
+                } else {
+                    input.type = 'password';
+                }
+            }
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Phone Country Code Logic
+    const phoneGroups = document.querySelectorAll('.phone-group');
+    
+    phoneGroups.forEach(group => {
+        const select = group.querySelector('.country-code-select');
+        const input = group.querySelector('.phone-main-input');
+        const hidden = group.querySelector('.phone-hidden-final');
+        
+        function updateHidden() {
+            const val = input.value.trim().replace(/\D/g, '');
+            if (val) {
+                hidden.value = select.value + val;
+            } else {
+                hidden.value = '';
+            }
+        }
+        
+        select.addEventListener('change', updateHidden);
+        input.addEventListener('input', updateHidden);
+        
+        // Initial sync if editing
+        if (input.value) updateHidden();
+    });
+});
+</script>
+
+<?php include __DIR__ . '/bottom_nav.php'; ?>
+
+<!-- WhatsApp Chat Widget Integration -->
+<?php
+$wa_widget_q = $conn->query("SELECT chat_widget_enabled, chat_widget_number, chat_widget_message FROM whatsapp_settings WHERE id = 1");
+$wa_widget   = $wa_widget_q ? $wa_widget_q->fetch_assoc() : null;
+if ($wa_widget && $wa_widget['chat_widget_enabled']) {
+    $wa_number  = htmlspecialchars($wa_widget['chat_widget_number'] ?? '918573934013');
+    $wa_message = htmlspecialchars($wa_widget['chat_widget_message'] ?? 'Hello, I have a question about your products.');
+    include BASE_PATH . '/whatsapp-button.html';
+    echo "<script>
+window.WA_WIDGET_CONFIG = {
+    phoneNumber: " . json_encode($wa_widget['chat_widget_number'] ?: '918573934013') . ",
+    prefillMessage: " . json_encode($wa_widget['chat_widget_message'] ?: 'Hello, I have a question about your products.') . "
+};
+</script>";
+    echo '<script src="' . SITE_URL . '/whatsapp-script.js"></script>';
+}
+?>
+
+<?php
+if (isset($scriptService)) {
+    echo $scriptService->getFooterScripts();
+}
+?>
+</body>
+</html>

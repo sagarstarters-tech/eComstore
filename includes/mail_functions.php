@@ -1,0 +1,467 @@
+<?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require_once __DIR__ . '/PHPMailer/src/Exception.php';
+require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
+require_once __DIR__ . '/PHPMailer/src/SMTP.php';
+require_once __DIR__ . '/mail_config.php';
+
+/**
+ * Log email sending attempts to the database
+ */
+function logEmailAttempt($conn, $order_id, $recipient, $type, $status, $error_msg = null) {
+    if ($error_msg) {
+        $error_msg = $conn->real_escape_string($error_msg);
+    }
+    
+    $stmt = $conn->prepare("INSERT INTO email_logs (order_id, recipient_email, email_type, status, error_message) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("issss", $order_id, $recipient, $type, $status, $error_msg);
+    $stmt->execute();
+}
+
+/**
+ * Fetch an email template from the database based on its key.
+ * 
+ * @param mysqli $conn Database connection object
+ * @param string $key Unique template key
+ * @return array|null Template data or null if not found
+ */
+function getEmailTemplate($conn, $key) {
+    if (!$conn) return null;
+    $stmt = $conn->prepare("SELECT * FROM email_templates WHERE tpl_key = ?");
+    $stmt->bind_param("s", $key);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $result->num_rows > 0) {
+        return $result->fetch_assoc();
+    }
+    return null;
+}
+
+/**
+ * Replace placeholders in an email template.
+ * 
+ * @param string $content HTML/Text content with {placeholders}
+ * @param array $vars Key-value pairs for replacement
+ * @return string Parsed content
+ */
+function parseTemplate($content, $vars) {
+    foreach ($vars as $key => $value) {
+        $content = str_replace('{' . $key . '}', $value, $content);
+    }
+    return $content;
+}
+
+/**
+ * Configure standard PHPMailer instance
+ */
+function getMailerInstance($conn = null) {
+    global $conn; // Use global conn if not provided
+    $db_conn = $conn;
+    
+    $mail = new PHPMailer(true);
+    
+    // Default fallback to .env constants
+    $host = defined('SMTP_HOST') ? SMTP_HOST : '';
+    $user = defined('SMTP_USER') ? SMTP_USER : '';
+    $pass = defined('SMTP_PASS') ? SMTP_PASS : '';
+    $secure = defined('SMTP_SECURE') ? SMTP_SECURE : 'tls';
+    $port = defined('SMTP_PORT') ? SMTP_PORT : 587;
+    $from_name = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Store System';
+    $from_email = $user; // Default fallback to SMTP_USER for from-email
+    
+    // Check DB Settings if connection is available
+    if ($db_conn) {
+        $settings_keys = [
+            "'smtp_provider'", "'smtp_host'", "'smtp_port'", 
+            "'smtp_username'", "'smtp_password'", "'smtp_encryption'", 
+            "'smtp_sender_email'", "'smtp_sender_name'"
+        ];
+        $keys_str = implode(',', $settings_keys);
+        $res = $db_conn->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ($keys_str)");
+        
+        $db_settings = [];
+        if ($res && $res->num_rows > 0) {
+            while ($row = $res->fetch_assoc()) {
+                $db_settings[$row['setting_key']] = $row['setting_value'];
+            }
+        }
+        
+        $provider = $db_settings['smtp_provider'] ?? 'env';
+        
+        if ($provider !== 'env' && !empty($db_settings['smtp_host'])) {
+            $host = $db_settings['smtp_host'];
+            $port = (int)$db_settings['smtp_port'];
+            $user = $db_settings['smtp_username'];
+            
+            // Decrypt password
+            $enc_pass = $db_settings['smtp_password'] ?? '';
+            $pass = '';
+            if (!empty($enc_pass)) {
+                $encryption_key = defined('ENCRYPTION_KEY') ? ENCRYPTION_KEY : 'default_fallback_secret_key_123!';
+                // Check if it's actually encrypted (contains ::)
+                if (strpos($enc_pass, '::') !== false) {
+                    list($encrypted_data, $iv) = explode('::', base64_decode($enc_pass), 2);
+                    $pass = openssl_decrypt($encrypted_data, 'aes-256-cbc', $encryption_key, 0, $iv);
+                } else {
+                    $pass = $enc_pass; // Fallback if plain text happens to exist
+                }
+            }
+            
+            $secure = strtolower($db_settings['smtp_encryption'] ?? 'tls');
+            $from_email = !empty($db_settings['smtp_sender_email']) ? $db_settings['smtp_sender_email'] : $user;
+            $from_name = !empty($db_settings['smtp_sender_name']) ? $db_settings['smtp_sender_name'] : $from_name;
+        }
+    }
+    
+    // Server settings
+    $mail->isSMTP();
+    $mail->Host       = $host;
+    $mail->SMTPAuth   = true;
+    $mail->Username   = $user;
+    $mail->Password   = $pass;
+    $mail->SMTPSecure = $secure;
+    $mail->Port       = $port;
+    
+    // Bypass SSL certificate verification for local environments (like XAMPP)
+    $mail->SMTPOptions = array(
+        'ssl' => array(
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true
+        )
+    );
+    
+    // Sender configuration
+    $mail->setFrom($from_email, $from_name);
+    
+    return $mail;
+}
+
+/**
+ * Send Order Confirmation Emails (Customer and Admin)
+ */
+function sendOrderConfirmationEmail($conn, $order_id, $customer_email, $customer_name, $order_details, $subtotal, $currency, $payment_method = 'card') {
+    
+    $payment_text = ($payment_method === 'cod') ? 'Cash On Delivery (COD)' : 'Credit / Debit Card';
+    
+    // 1. Check if emails are enabled globally
+    $settings_q = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'enable_email_notifications'");
+    $emails_enabled = ($settings_q && $row = $settings_q->fetch_assoc()) ? ($row['setting_value'] ?? '0') : '0';
+    
+    if ($emails_enabled !== '1') {
+        return false; // Emails are disabled
+    }
+    
+    $settings_q2 = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'admin_email'");
+    $admin_email = $settings_q2->fetch_assoc()['setting_value'] ?? SMTP_USER;
+    
+    // Validate recipient emails
+    if (!filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
+        logEmailAttempt($conn, $order_id, $customer_email, 'customer_order', 'failed', 'Invalid customer email address format.');
+        $customer_email = false;
+    }
+    
+    if (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+        logEmailAttempt($conn, $order_id, $admin_email, 'admin_order', 'failed', 'Invalid admin email address format.');
+        $admin_email = false;
+    }
+
+    $date_str = date('F j, Y, g:i a');
+    
+    // Common HTML Parts
+    $items_html = '<table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Product</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">Qty</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Price</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+                    
+    foreach ($order_details as $item) {
+        $item_total = $item['price'] * $item['qty'];
+        $items_html .= '<tr>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">' . htmlspecialchars($item['name']) . '</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">' . $item['qty'] . '</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">' . $currency . number_format($item['price'], 2) . '</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">' . $currency . number_format($item_total, 2) . '</td>
+                        </tr>';
+    }
+    
+    $items_html .= '</tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="padding: 10px; border: 1px solid #dee2e6; text-align: right; font-weight: bold;">Grand Total:</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6; text-align: right; font-weight: bold; color: #0d6efd;">' . $currency . number_format($subtotal, 2) . '</td>
+                        </tr>
+                    </tfoot>
+                   </table>';
+                   
+
+    // --- 1. SEND CUSTOMER EMAIL ---
+    if ($customer_email) {
+        try {
+            $customer_mail = getMailerInstance();
+            $customer_mail->addAddress($customer_email, $customer_name);
+            $customer_mail->isHTML(true);
+
+            // Fetch template
+            $tpl = getEmailTemplate($conn, 'order_confirmation_customer');
+            if ($tpl) {
+                $vars = [
+                    'customer_name' => htmlspecialchars($customer_name),
+                    'order_id' => $order_id,
+                    'date_str' => $date_str,
+                    'payment_method' => $payment_text,
+                    'items_table' => $items_html,
+                    'current_year' => date('Y')
+                ];
+                $customer_mail->Subject = parseTemplate($tpl['subject'], $vars);
+                $customer_mail->Body = parseTemplate($tpl['body'], $vars);
+            } else {
+                // FALLBACK Case
+                $customer_mail->Subject = "Your Order #{$order_id} Has Been Confirmed";
+                $body = '
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: #0d6efd; padding: 20px; text-align: center; color: white;">
+                        <h2 style="margin: 0;">Order Confirmed!</h2>
+                    </div>
+                    <div style="padding: 20px;">
+                        <p style="font-size: 16px;">Hello <strong>' . htmlspecialchars($customer_name) . '</strong>,</p>
+                        <p>Thank you for your purchase. We are pleased to confirm your order details below. We are now processing your order and will notify you once it has shipped.</p>
+                        
+                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>Order ID:</strong> #' . $order_id . '</p>
+                            <p style="margin: 5px 0;"><strong>Date:</strong> ' . $date_str . '</p>
+                            <p style="margin: 5px 0;"><strong>Payment Method:</strong> ' . $payment_text . '</p>
+                            <p style="margin: 5px 0;"><strong>Order Status:</strong> Pending</p>
+                        </div>
+                        
+                        <h3 style="border-bottom: 1px solid #eaeaea; padding-bottom: 5px; color: #0d6efd;">Order Instructions</h3>
+                        ' . $items_html . '
+                        
+                        <p style="margin-top: 30px; font-size: 14px; color: #6c757d; text-align: center;">
+                            If you have any questions about your order, please reply to this email or contact our support team.
+                        </p>
+                    </div>
+                    <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; border-top: 1px solid #eaeaea;">
+                        &copy; ' . date('Y') . ' Sagar Starter\'s. All rights reserved.
+                    </div>
+                </div>';
+                $customer_mail->Body = $body;
+            }
+            
+            $customer_mail->send();
+            logEmailAttempt($conn, $order_id, $customer_email, 'customer_order', 'success');
+            
+        } catch (Exception $e) {
+            logEmailAttempt($conn, $order_id, $customer_email, 'customer_order', 'failed', "PHPMailer Error: {$customer_mail->ErrorInfo}");
+        }
+    }
+    
+    // --- 2. SEND ADMIN EMAIL ---
+    if ($admin_email) {
+        try {
+            $admin_mail = getMailerInstance();
+            $admin_mail->addAddress($admin_email, 'Store Administrator');
+            $admin_mail->addReplyTo($customer_email ?? SMTP_USER, $customer_name);
+            $admin_mail->isHTML(true);
+
+            // Fetch template
+            $tpl = getEmailTemplate($conn, 'order_confirmation_admin');
+            if ($tpl) {
+                $vars = [
+                    'order_id' => $order_id,
+                    'customer_name' => htmlspecialchars($customer_name),
+                    'customer_email' => htmlspecialchars($customer_email),
+                    'date_str' => $date_str,
+                    'payment_method' => $payment_text,
+                    'total_amount' => $currency . number_format($subtotal, 2),
+                    'items_table' => $items_html,
+                    'admin_order_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/admin/manage_orders.php'
+                ];
+                $admin_mail->Subject = parseTemplate($tpl['subject'], $vars);
+                $admin_mail->Body = parseTemplate($tpl['body'], $vars);
+            } else {
+                // FALLBACK Case
+                $admin_mail->Subject = "New Order Received – Order #{$order_id}";
+                $admin_body = '
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #eaeaea;">
+                    <div style="background-color: #198754; padding: 15px; text-align: center; color: white;">
+                        <h2 style="margin: 0;">New Order Notification</h2>
+                    </div>
+                    <div style="padding: 20px;">
+                        <p>A new order has been placed in the store.</p>
+                        
+                        <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>Order ID:</strong> #' . $order_id . '</p>
+                            <p style="margin: 5px 0;"><strong>Customer Name:</strong> ' . htmlspecialchars($customer_name) . '</p>
+                            <p style="margin: 5px 0;"><strong>Customer Email:</strong> ' . htmlspecialchars($customer_email) . '</p>
+                            <p style="margin: 5px 0;"><strong>Date:</strong> ' . $date_str . '</p>
+                            <p style="margin: 5px 0;"><strong>Payment Method:</strong> ' . $payment_text . '</p>
+                            <p style="margin: 5px 0;"><strong>Total Amount:</strong> ' . $currency . number_format($subtotal, 2) . '</p>
+                            <p style="margin: 5px 0;"><strong>Status:</strong> New / Pending</p>
+                        </div>
+                        
+                        <h3 style="border-bottom: 1px solid #eaeaea; padding-bottom: 5px;">Ordered Products</h3>
+                        ' . $items_html . '
+                        
+                        <div style="margin-top: 20px;">
+                            <a href="https://' . $_SERVER['HTTP_HOST'] . '/admin/manage_orders.php" style="display: inline-block; padding: 10px 20px; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px;">View Order in Admin Panel</a>
+                        </div>
+                    </div>
+                </div>';
+                $admin_mail->Body = $admin_body;
+            }
+            
+            $admin_mail->send();
+            logEmailAttempt($conn, $order_id, $admin_email, 'admin_order', 'success');
+            
+        } catch (Exception $e) {
+            logEmailAttempt($conn, $order_id, $admin_email, 'admin_order', 'failed', "PHPMailer Error: {$admin_mail->ErrorInfo}");
+        }
+    }
+}
+
+/**
+ * Send Order Status Update Email (Customer)
+ */
+function sendOrderStatusEmail($conn, $order_id, $customer_email, $customer_name, $new_status) {
+    
+    // 1. Check if emails are enabled globally
+    $settings_q = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'enable_email_notifications'");
+    $emails_enabled = $settings_q->fetch_assoc()['setting_value'] ?? '0';
+    
+    if ($emails_enabled !== '1') {
+        return false; // Emails are disabled
+    }
+
+    if (!filter_var($customer_email, FILTER_VALIDATE_EMAIL)) {
+        logEmailAttempt($conn, $order_id, $customer_email, 'status_update', 'failed', 'Invalid customer email address format.');
+        return false;
+    }
+
+    // Format the status for display
+    $display_status = ucwords(str_replace('_', ' ', $new_status));
+    
+    // Custom message based on status
+    $status_message = "";
+    $color_code = "#0d6efd"; // Default blue
+    
+    switch ($new_status) {
+        case 'processing':
+            $status_message = "Your order is now being processed by our warehouse team and will be prepared for shipping shortly.";
+            $color_code = "#0dcaf0"; // Info cyan
+            break;
+        case 'partially_shipped':
+            $status_message = "Your order has been partially shipped. Some items are on the way, and the remainder will follow soon.";
+            $color_code = "#fd7e14"; // Orange
+            break;
+        case 'shipped':
+            $status_message = "Great news! Your complete order has been shipped and is on its way to you.";
+            $color_code = "#198754"; // Success green
+            break;
+        case 'delivered':
+            $status_message = "Your order has been marked as delivered. We hope you enjoy your purchase!";
+            $color_code = "#20c997"; // Teal
+            break;
+        case 'cancelled':
+            $status_message = "Your order has been cancelled. If you have already been charged, a refund will be processed according to our policy.";
+            $color_code = "#dc3545"; // Danger red
+            break;
+        default:
+            $status_message = "The status of your order has been updated to: " . $display_status;
+            break;
+    }
+
+    try {
+        $mail = getMailerInstance();
+        $mail->addAddress($customer_email, $customer_name);
+        $mail->isHTML(true);
+
+        // Fetch template
+        $tpl = getEmailTemplate($conn, 'order_status_update');
+        if ($tpl) {
+            $vars = [
+                'status_color' => $color_code,
+                'customer_name' => htmlspecialchars($customer_name),
+                'display_status' => $display_status,
+                'status_message' => $status_message,
+                'order_id' => $order_id,
+                'current_year' => date('Y')
+            ];
+            $mail->Subject = parseTemplate($tpl['subject'], $vars);
+            $mail->Body = parseTemplate($tpl['body'], $vars);
+        } else {
+            // FALLBACK Case
+            $mail->Subject = "Update on your Order #{$order_id} - {$display_status}";
+            $body = '
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: ' . $color_code . '; padding: 20px; text-align: center; color: white;">
+                    <h2 style="margin: 0;">Order Status Update</h2>
+                </div>
+                <div style="padding: 20px;">
+                    <p style="font-size: 16px;">Hello <strong>' . htmlspecialchars($customer_name) . '</strong>,</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid ' . $color_code . ';">
+                        <h3 style="margin-top: 0; color: ' . $color_code . ';">Status: ' . $display_status . '</h3>
+                        <p style="margin-bottom: 0;">' . $status_message . '</p>
+                    </div>
+                    
+                    <p><strong>Order ID:</strong> #' . $order_id . '</p>
+                    
+                    <p style="margin-top: 30px; font-size: 14px; color: #6c757d; text-align: center;">
+                        If you have any questions about your order, please reply to this email or contact our support team.
+                    </p>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; border-top: 1px solid #eaeaea;">
+                    &copy; ' . date('Y') . ' Sagar Starter\'s. All rights reserved.
+                </div>
+            </div>';
+            $mail->Body = $body;
+        }
+
+        $mail->send();
+        
+        logEmailAttempt($conn, $order_id, $customer_email, 'status_update', 'success');
+        return true;
+        
+    } catch (Exception $e) {
+        logEmailAttempt($conn, $order_id, $customer_email, 'status_update', 'failed', "PHPMailer Error: {$mail->ErrorInfo}");
+        return false;
+    }
+}
+
+/**
+ * Send a generic HTML email
+ * 
+ * @param string $to Recipient email address
+ * @param string $subject Email subject
+ * @param string $body HTML email body
+ * @return array ['success' => boolean, 'error' => string]
+ */
+function sendEmail($to, $subject, $body) {
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'error' => 'Invalid recipient email address.'];
+    }
+
+    try {
+        $mail = getMailerInstance();
+        $mail->addAddress($to);
+        
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+        
+        $mail->send();
+        return ['success' => true, 'error' => ''];
+        
+    } catch (Exception $e) {
+        return ['success' => false, 'error' => $mail->ErrorInfo];
+    }
+}
+?>

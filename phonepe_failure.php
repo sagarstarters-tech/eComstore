@@ -1,0 +1,43 @@
+<?php
+// phonepe_failure.php
+include 'includes/header.php';
+
+$raw_transactionId = $_GET['transactionId'] ?? $_POST['transactionId'] ?? 'Unknown';
+$merchantTransactionId = ($raw_transactionId !== 'Unknown') ? $conn->real_escape_string($raw_transactionId) : 'Unknown';
+
+// Try to grab the order ID if possible to offer a retry link
+$retry_link = "checkout.php"; // Default fallback
+if ($merchantTransactionId !== 'Unknown') {
+    $txn_q = $conn->query("SELECT order_id FROM phonepe_transactions WHERE transaction_id = '$merchantTransactionId'");
+    if ($txn_q && $txn_q->num_rows > 0) {
+        $order_id = $txn_q->fetch_assoc()['order_id'];
+        
+        // If the webhook hasn't fired yet (e.g. localhost), update the DB manually here
+        $conn->query("UPDATE phonepe_transactions SET status = 'FAILED' WHERE transaction_id = '$merchantTransactionId' AND status != 'SUCCESS'");
+        
+        // Also cancel the order if it exists
+        if ($order_id) {
+            $conn->query("UPDATE orders SET status = 'cancelled' WHERE id = $order_id AND status = 'pending'");
+        }
+    }
+}
+?>
+<div class="container mt-5 pt-5 mb-5 text-center">
+    <div class="card shadow-sm border-0 p-5 mx-auto" style="max-width: 600px;">
+        <i class="fas fa-times-circle fa-5x text-danger mb-4"></i>
+        <h2 class="fw-bold mb-3">Payment Failed</h2>
+        <p class="text-muted fs-5 mb-4">We couldn't process your payment. Please try again or choose another payment method.</p>
+        
+        <?php if ($merchantTransactionId !== 'Unknown'): ?>
+        <p class="small bg-light p-2 border rounded text-muted mb-4">Transaction ID: <strong><?php echo htmlspecialchars($merchantTransactionId); ?></strong></p>
+        <?php endif; ?>
+
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <a href="checkout.php" class="btn btn-outline-danger btn-lg btn-custom px-4"><i class="fas fa-redo me-2"></i>Retry Payment</a>
+            <a href="cart.php" class="btn btn-primary btn-lg btn-custom px-4">Return to Cart</a>
+        </div>
+    </div>
+</div>
+<?php
+include 'includes/footer.php';
+?>

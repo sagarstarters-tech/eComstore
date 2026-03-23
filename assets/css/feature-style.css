@@ -1,0 +1,95 @@
+/* feature-style.css - Mobile First */
+
+.feature-section {
+    padding: 60px 0;
+    background-color: #f8f9fa;
+    /* Light background for contrast */
+}
+
+.feature-block {
+    text-align: center;
+    padding: 30px 20px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.feature-block:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: rgba(0, 115, 204, 0.1);
+    /* primary-blue with opacity */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.feature-icon-font {
+    font-size: 30px;
+    color: var(--primary-color, #0073cc);
+}
+
+.feature-icon-img {
+    max-width: 40px;
+    max-height: 40px;
+    object-fit: contain;
+}
+
+.feature-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #222;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.feature-desc {
+    font-size: 0.95rem;
+    color: #6c757d;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Responsive Grid Layout */
+
+/* Mobile (Default, < 768px): 1 column per row */
+.feature-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+
+/* Tablet (768px - 991px): 2 columns per row */
+@media (min-width: 768px) {
+    .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+}
+
+/* Laptop & Desktop (>= 992px): 4 columns per row */
+@media (min-width: 992px) {
+    .feature-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .feature-grid {
+        gap: 30px;
+    }
+}

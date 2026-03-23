@@ -1,0 +1,317 @@
+<?php
+/**
+ * Admin Sidebar Menu Configuration
+ *
+ * Each top-level item can have:
+ *   - label:    Display text
+ *   - icon:     Font Awesome class (without 'fas fa-')
+ *   - url:      Direct link (for non-collapsible items)
+ *   - pages:    Array of PHP filenames that activate this item
+ *   - children: Array of sub-menu items (makes it collapsible)
+ *   - divider:  If true, renders a visual separator before this item
+ *
+ * Each child item can have:
+ *   - label:    Display text
+ *   - icon:     Font Awesome class
+ *   - url:      Link href
+ *   - pages:    Array of filenames; active when current page matches
+ *   - params:   Array of GET params that must also match for active state
+ */
+return [
+    // ── Dashboard ─────────────────────────────────────────────
+    [
+        'label' => 'Dashboard',
+        'icon'  => 'fa-tachometer-alt',
+        'url'   => 'index.php',
+        'pages' => ['index.php'],
+    ],
+
+    // ── Products ──────────────────────────────────────────────
+    [
+        'label'    => 'Products',
+        'icon'     => 'fa-box',
+        'pages'    => ['manage_products.php', 'manage_categories.php'],
+        'children' => [
+            [
+                'label'  => 'All Products',
+                'icon'   => 'fa-list',
+                'url'    => 'manage_products.php?action=list',
+                'pages'  => ['manage_products.php'],
+                'params' => ['action' => ['list', null, '']],
+            ],
+            [
+                'label'  => 'Add Product',
+                'icon'   => 'fa-plus',
+                'url'    => 'manage_products.php?action=add',
+                'pages'  => ['manage_products.php'],
+                'params' => ['action' => ['add']],
+            ],
+            [
+                'label' => 'Categories',
+                'icon'  => 'fa-tags',
+                'url'   => 'manage_categories.php',
+                'pages' => ['manage_categories.php'],
+            ],
+        ],
+    ],
+
+    // ── Orders ────────────────────────────────────────────────
+    [
+        'label'    => 'Orders',
+        'icon'     => 'fa-shopping-cart',
+        'pages'    => ['manage_orders.php', 'manage_order_tracking.php'],
+        'children' => [
+            [
+                'label'  => 'All Orders',
+                'icon'   => 'fa-list-ol',
+                'url'    => 'manage_orders.php?status=all',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['all', null, '']],
+            ],
+            [
+                'label'  => 'Pending',
+                'icon'   => 'fa-clock',
+                'url'    => 'manage_orders.php?status=pending',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['pending']],
+            ],
+            [
+                'label'  => 'Processing',
+                'icon'   => 'fa-cog',
+                'url'    => 'manage_orders.php?status=processing',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['processing']],
+            ],
+            [
+                'label'  => 'Partially Shipped',
+                'icon'   => 'fa-box-open',
+                'url'    => 'manage_orders.php?status=partially_shipped',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['partially_shipped']],
+            ],
+            [
+                'label'  => 'Shipped',
+                'icon'   => 'fa-truck',
+                'url'    => 'manage_orders.php?status=shipped',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['shipped']],
+            ],
+            [
+                'label'  => 'Delivered',
+                'icon'   => 'fa-clipboard-check',
+                'url'    => 'manage_orders.php?status=delivered',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['delivered']],
+            ],
+            [
+                'label'  => 'Completed',
+                'icon'   => 'fa-check-circle',
+                'url'    => 'manage_orders.php?status=completed',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['completed']],
+            ],
+            [
+                'label'  => 'Cancelled',
+                'icon'   => 'fa-times-circle',
+                'url'    => 'manage_orders.php?status=cancelled',
+                'pages'  => ['manage_orders.php'],
+                'params' => ['status' => ['cancelled']],
+            ],
+            [
+                'label' => 'Order Tracking',
+                'icon'  => 'fa-shipping-fast',
+                'url'   => 'manage_order_tracking.php',
+                'pages' => ['manage_order_tracking.php'],
+            ],
+        ],
+    ],
+
+    // ── Customers ─────────────────────────────────────────────
+    [
+        'label'    => 'Customers',
+        'icon'     => 'fa-users',
+        'pages'    => ['manage_users.php'],
+        'children' => [
+            [
+                'label' => 'All Customers',
+                'icon'  => 'fa-user-friends',
+                'url'   => 'manage_users.php',
+                'pages' => ['manage_users.php'],
+            ],
+        ],
+    ],
+
+    // ── Frontend Content ──────────────────────────────────────
+    [
+        'label'    => 'Frontend Content',
+        'icon'     => 'fa-desktop',
+        'pages'    => [
+            'hero-slider-settings.php', 'manage-slides.php',
+            'manage_homepage_features.php', 'manage_banners.php',
+            'manage_pages.php', 'manage_about.php',
+            'manage_site_content.php', 'manage_product_share.php'
+        ],
+        'children' => [
+            [
+                'label' => 'Hero Slider',
+                'icon'  => 'fa-layer-group',
+                'url'   => 'hero-slider-settings.php',
+                'pages' => ['hero-slider-settings.php', 'manage-slides.php'],
+            ],
+            [
+                'label' => 'Feature Icons',
+                'icon'  => 'fa-star',
+                'url'   => 'manage_homepage_features.php',
+                'pages' => ['manage_homepage_features.php'],
+            ],
+            [
+                'label' => 'Homepage Banners',
+                'icon'  => 'fa-images',
+                'url'   => 'manage_banners.php',
+                'pages' => ['manage_banners.php'],
+            ],
+            [
+                'label' => 'Static Pages',
+                'icon'  => 'fa-file-alt',
+                'url'   => 'manage_pages.php',
+                'pages' => ['manage_pages.php'],
+            ],
+            [
+                'label' => 'About Us Page',
+                'icon'  => 'fa-info-circle',
+                'url'   => 'manage_about.php',
+                'pages' => ['manage_about.php'],
+            ],
+            [
+                'label' => 'Contact Us Page',
+                'icon'  => 'fa-envelope-open-text',
+                'url'   => 'manage_contact.php',
+                'pages' => ['manage_contact.php'],
+            ],
+            [
+                'label' => 'Footer Settings',
+                'icon'  => 'fa-level-down-alt',
+                'url'   => 'manage_site_content.php',
+                'pages' => ['manage_site_content.php'],
+            ],
+            [
+                'label' => 'Product Share',
+                'icon'  => 'fa-share-alt',
+                'url'   => 'manage_product_share.php',
+                'pages' => ['manage_product_share.php'],
+            ],
+        ],
+    ],
+
+    // ── Marketing ─────────────────────────────────────────────
+    [
+        'label'    => 'Marketing',
+        'icon'     => 'fa-bullhorn',
+        'pages'    => ['manage_whatsapp_settings.php', 'view_email_logs.php', 'manage_email_templates.php'],
+        'children' => [
+            [
+                'label' => 'WhatsApp Notifs',
+                'icon'  => 'fab fa-whatsapp',
+                'url'   => 'manage_whatsapp_settings.php',
+                'pages' => ['manage_whatsapp_settings.php'],
+            ],
+            [
+                'label' => 'Email Templates',
+                'icon'  => 'fa-envelope-open-text',
+                'url'   => 'manage_email_templates.php',
+                'pages' => ['manage_email_templates.php'],
+            ],
+            [
+                'label' => 'Email Logs',
+                'icon'  => 'fa-envelope',
+                'url'   => 'view_email_logs.php',
+                'pages' => ['view_email_logs.php'],
+            ],
+        ],
+    ],
+
+    // ── Appearance ────────────────────────────────────────────
+    [
+        'label'    => 'Appearance',
+        'icon'     => 'fa-paint-brush',
+        'pages'    => ['manage_theme.php'],
+        'children' => [
+            [
+                'label' => 'Theme Customizer',
+                'icon'  => 'fa-palette',
+                'url'   => 'manage_theme.php',
+                'pages' => ['manage_theme.php'],
+            ],
+        ],
+    ],
+
+    // ── Settings & Configs ────────────────────────────────────
+    [
+        'label'    => 'Settings &amp; Configs',
+        'icon'     => 'fa-cogs',
+        'pages'    => ['manage_settings.php', 'system_optimize.php', 'manage_seo.php', 'manage_tracking.php', 'manage_scripts.php'],
+        'children' => [
+            [
+                'label'  => 'Global Properties',
+                'icon'   => 'fa-sliders-h',
+                'pages'  => ['manage_settings.php'],
+                'children' => [
+                    [
+                        'label'  => 'General Settings',
+                        'icon'   => 'fa-cog',
+                        'url'    => 'manage_settings.php?tab=general',
+                        'pages'  => ['manage_settings.php'],
+                        'params' => ['tab' => ['general', null, '']],
+                    ],
+                    [
+                        'label'  => 'Payment Gateways',
+                        'icon'   => 'fa-wallet',
+                        'url'    => 'manage_settings.php?tab=payment',
+                        'pages'  => ['manage_settings.php'],
+                        'params' => ['tab' => ['payment']],
+                    ],
+                    [
+                        'label'  => 'Shipping Logic',
+                        'icon'   => 'fa-truck',
+                        'url'    => 'manage_settings.php?tab=shipping',
+                        'pages'  => ['manage_settings.php'],
+                        'params' => ['tab' => ['shipping']],
+                    ],
+                    [
+                        'label'  => 'Build User Menus',
+                        'icon'   => 'fa-sitemap',
+                        'url'    => 'manage_settings.php?tab=menus',
+                        'pages'  => ['manage_settings.php'],
+                        'params' => ['tab' => ['menus']],
+                    ]
+                ]
+            ],
+            [
+                'label' => 'Refresh &amp; Optimize',
+                'icon'  => 'fa-broom',
+                'url'   => 'system_optimize.php',
+                'pages' => ['system_optimize.php'],
+            ],
+            [
+                'label' => 'WEBSEO Module',
+                'icon'  => 'fa-search',
+                'url'   => 'manage_seo.php',
+                'pages' => ['manage_seo.php'],
+            ],
+            [
+                'label' => 'Order Tracking Config',
+                'icon'  => 'fa-map-marker-alt',
+                'url'   => 'manage_tracking.php',
+                'pages' => ['manage_tracking.php'],
+            ],
+            [
+                'label' => 'Headers &amp; Footers',
+                'icon'  => 'fa-code',
+                'url'   => 'manage_scripts.php',
+                'pages' => ['manage_scripts.php'],
+            ],
+        ],
+    ],
+    // ── Divider ───────────────────────────────────────────────
+    ['divider' => true],
+];

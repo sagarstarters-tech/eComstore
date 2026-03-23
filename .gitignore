@@ -1,0 +1,24 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# XAMPP/Local stuff
+/tmp/
+/logs/
+*.log
+Thumbs.db
+.DS_Store
+
+# Uploads (optional - keep empty dir)
+/uploads/*
+!/uploads/.gitkeep
+
+# Vendor (if composer is used)
+# Backups & SQL Dumps
+*.sql
+*.zip
+*.tar.gz
+*.7z
+/backups/
+/backup/

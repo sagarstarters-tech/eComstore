@@ -1,0 +1,314 @@
+<?php
+ob_start();
+include_once __DIR__ . '/includes/session_setup.php';
+include 'includes/db_connect.php';
+require_once 'includes/mail_functions.php';
+
+require_once 'shipping_module_src/src/Config/ShippingConfig.php';
+require_once 'shipping_module_src/src/Repositories/ShippingRepository.php';
+require_once 'shipping_module_src/src/Services/ShippingService.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: user/login.php");
+    exit;
+}
+
+if (empty($_SESSION['cart']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: cart.php");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$user_data = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+$cart_items = [];
+$subtotal = 0;
+if (!empty($_SESSION['cart'])) {
+    // Sanitize IDs for the IN clause
+    $safe_ids = implode(',', array_map('intval', array_keys($_SESSION['cart'])));
+    $result = $conn->query("SELECT * FROM products WHERE id IN ($safe_ids)");
+
+    $is_all_digital = true;
+    $cod_allowed_for_all = true;
+    while ($row = $result->fetch_assoc()) {
+        $qty = (int)$_SESSION['cart'][$row['id']];
+        // Enforce stock limit at checkout to prevent race conditions
+        if ($qty > $row['stock']) {
+            $qty = $row['stock'];
+            $_SESSION['cart'][$row['id']] = $qty; // Update cart
+        }
+        
+        if ($qty > 0) {
+            $total = (float)$row['price'] * $qty;
+            $subtotal += $total;
+            $row['qty'] = $qty;
+            $cart_items[] = $row;
+            
+            if ($row['product_type'] === 'physical') {
+                $is_all_digital = false;
+            }
+
+            if ($row['cod_available'] == 0) {
+                $cod_allowed_for_all = false;
+            }
+        } else {
+            unset($_SESSION['cart'][$row['id']]); // Remove out of stock items
+        }
+    }
+}
+
+$shippingConfig = new \ShippingModule\Config\ShippingConfig();
+$shippingRepo = new \ShippingModule\Repositories\ShippingRepository($shippingConfig->getConnection());
+$shippingService = new \ShippingModule\Services\ShippingService($shippingRepo);
+
+if (isset($is_all_digital) && $is_all_digital) {
+    $shipping_cost = 0;
+    $grand_total = $subtotal;
+    $shippingCalc = ['shipping_metadata' => ['is_free' => true, 'message' => 'Digital products - No shipping required']];
+} else {
+    $shippingCalc = $shippingService->getFinalOrderTotals($subtotal, $cart_items);
+    $shipping_cost = $shippingCalc['shipping_cost'];
+    $grand_total = $shippingCalc['grand_total'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = "Security check failed. Please submit the form again.";
+        header("Location: checkout.php");
+        exit;
+    }
+    
+    // Start Transaction for Order Integrity
+    $conn->begin_transaction();
+    try {
+        $status = 'pending';
+        $payment_method = $_POST['payment_method'] ?? 'cod';
+        
+        // 1. Insert order
+        $stmt = $conn->prepare("INSERT INTO orders (user_id, total_amount, payment_method, status) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
+        $stmt->execute();
+        $order_id = $stmt->insert_id;
+        $stmt->close();
+        
+        // 2. Insert order items and update stock
+        $stmt2 = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price, shipping_cost) VALUES (?, ?, ?, ?, ?)");
+        $stock_stmt = $conn->prepare("UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ? AND stock >= ?");
+        
+        foreach ($cart_items as $item) {
+            $item_shipping = ($item['product_type'] === 'physical') ? (float)$item['shipping_cost'] : 0.00;
+            $qty = (int)$item['qty'];
+            $p_id = (int)$item['id'];
+            
+            $stmt2->bind_param("iiidd", $order_id, $p_id, $qty, $item['price'], $item_shipping);
+            if (!$stmt2->execute()) throw new Exception("Failed to insert order item.");
+
+            // Update stock with safety check (ensure stock hasn't dropped since start of request)
+            $stock_stmt->bind_param("iii", $qty, $p_id, $qty);
+            $stock_stmt->execute();
+            if ($stock_stmt->affected_rows === 0) {
+                if ($item['product_type'] === 'physical') {
+                    throw new Exception("Product '{$item['name']}' is no longer in stock.");
+                }
+            }
+        }
+        $stmt2->close();
+        $stock_stmt->close();
+        
+        // If we reach here, commit everthing
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error'] = "Checkout failed: " . $e->getMessage();
+        header("Location: cart.php");
+        exit;
+    }
+    
+    if ($payment_method === 'cod') {
+        unset($_SESSION['cart']);
+        $customer_email = $user_data['email'];
+        $customer_name = $user_data['name'];
+        sendOrderConfirmationEmail($conn, $order_id, $customer_email, $customer_name, $cart_items, $grand_total, $global_currency, $payment_method);
+        
+        require_once 'tracking_module_src/src/Config/TrackingConfig.php';
+        require_once 'tracking_module_src/src/Repositories/TrackingRepository.php';
+        $trackingConfig = new \TrackingModule\Config\TrackingConfig();
+        $trackingRepo = new \TrackingModule\Repositories\TrackingRepository($trackingConfig->getConnection());
+        $trackingRepo->logStatusChange($order_id, 'pending', 'Order placed successfully.', 'system');
+
+        require_once 'includes/digital_product_functions.php';
+        activateDigitalDownloads($conn, $order_id);
+
+        $success = "Order placed successfully! Order ID: #$order_id";
+    } elseif ($payment_method === 'phonepe') {
+        include 'phonepe_payment.php';
+        exit;
+    }
+}
+
+// Now include header (no output sent before this except if redirected)
+include 'includes/header.php';
+?>
+
+<div class="container mt-5 pt-3 mb-5">
+    <h1 class="montserrat fw-bold primary-blue mb-4">Checkout</h1>
+    
+    <?php if(isset($success)): ?>
+        <div class="alert alert-success text-center py-4 bg-light border-success">
+            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+            <h3><?php echo $success; ?></h3>
+            <p>Thank you for your purchase. We are processing your order.</p>
+            <a href="user/orders.php" class="btn btn-primary btn-custom mt-3">View My Orders</a>
+        </div>
+    <?php else: ?>
+    <div class="row">
+        <!-- Billing Details Form -->
+        <div class="col-lg-8 mb-4">
+            <div class="card product-card border-0 shadow-sm p-4">
+                <h4 class="mb-4 fw-bold">Billing Details</h4>
+                <form method="POST" id="checkoutForm">
+                    <?php echo csrf_field(); ?>
+                    <?php if ($is_all_digital): ?>
+                        <div class="alert alert-info py-3 mb-4 rounded-3 border-0 bg-info bg-opacity-10 text-info">
+                            <i class="fas fa-info-circle me-2"></i> This order contains only digital products. Shipping address is not required.
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="billing_name" class="form-control" value="<?php echo htmlspecialchars($user_data['name'] ?? ''); ?>" required>
+                    </div>
+
+                    <div id="address_fields" class="<?php echo $is_all_digital ? 'd-none' : ''; ?>">
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <input type="text" name="billing_address" class="form-control" value="<?php echo htmlspecialchars($user_data['address'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" name="billing_city" class="form-control" value="<?php echo htmlspecialchars($user_data['city'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">State/Province</label>
+                                <input type="text" name="billing_state" class="form-control" value="<?php echo htmlspecialchars($user_data['state'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Country</label>
+                                <input type="text" name="billing_country" class="form-control" value="<?php echo htmlspecialchars($user_data['country'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Zip Code</label>
+                                <input type="text" name="billing_zip" class="form-control" value="<?php echo htmlspecialchars($user_data['zip_code'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <?php echo render_phone_input('billing_phone', $user_data['phone'] ?? '', true); ?>
+                    </div>
+
+                    
+                    <hr class="my-4">
+                    <h4 class="mb-3 fw-bold">Payment Method</h4>
+                    
+                    <?php 
+                        $phonepe_enabled = isset($global_settings['phonepe_enabled']) && $global_settings['phonepe_enabled'] == '1';
+                        $cod_enabled = isset($global_settings['cod_enabled']) && $global_settings['cod_enabled'] == '1';
+                    ?>
+                    
+                    <?php if ($phonepe_enabled): ?>
+                    <div class="mb-3">
+                        <div class="form-check border rounded p-3 bg-light">
+                            <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_phonepe" value="phonepe" required <?php echo !$cod_enabled ? 'checked' : ''; ?>>
+                            <label class="form-check-label ms-2 fw-bold" for="pay_phonepe">
+                                Pay Online via PhonePe
+                            </label>
+                            <small class="d-block text-success mt-1 ms-2"><i class="fas fa-shield-alt me-1"></i> Secure payment via UPI, Cards, NetBanking.</small>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($cod_enabled): ?>
+                        <?php if ($cod_allowed_for_all): ?>
+                        <div class="mb-4">
+                            <div class="form-check border rounded p-3 bg-light">
+                                <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_cod" value="cod" required <?php echo !$phonepe_enabled ? 'checked' : ''; ?>>
+                                <label class="form-check-label ms-2 fw-bold" for="pay_cod">
+                                    Cash On Delivery (COD)
+                                </label>
+                                <small class="d-block text-success mt-1 ms-2"><i class="fas fa-check-circle me-1"></i> Pay with cash upon delivery.</small>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="mb-4">
+                            <div class="alert alert-warning py-3 border-0 border-start border-warning border-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>COD Not Available:</strong> Cash on Delivery is not available for one or more items in your cart.
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    
+                    <?php if (!$phonepe_enabled && !$cod_enabled): ?>
+                        <div class="alert alert-danger px-4 py-3 border-0 border-start border-danger border-4 fw-bold">No payment methods are currently available. Please contact support.</div>
+                    <?php else: ?>
+                        <button type="submit" class="btn btn-primary btn-lg btn-custom w-100 mt-4 py-3">Place Order</button>
+                    <?php endif; ?>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Order Summary -->
+        <div class="col-lg-4">
+            <div class="card product-card border-0 shadow-sm">
+                <div class="card-body p-4 bg-light">
+                    <h5 class="fw-bold mb-4">Your Order</h5>
+                    <ul class="list-group list-group-flush mb-3">
+                        <?php foreach($cart_items as $item): ?>
+                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 border-bottom border-light">
+                            <div>
+                                <h6 class="my-0 text-truncate" style="max-width: 150px;"><?php echo htmlspecialchars($item['name']); ?></h6>
+                                <small class="text-muted">Qty: <?php echo $item['qty']; ?></small>
+                            </div>
+                            <span class="text-muted"><?php echo $global_currency; ?><?php echo number_format($item['qty'] * $item['price'], 2); ?></span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Cart Subtotal</span>
+                        <span><?php echo $global_currency; ?><?php echo number_format($subtotal, 2); ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Shipping Cost</span>
+                        <span class="<?php echo $shippingCalc['shipping_metadata']['is_free'] ? 'text-success fw-bold' : ''; ?>">
+                            <?php echo $shippingCalc['shipping_metadata']['is_free'] ? 'Free' : '+ ' . $global_currency . number_format($shipping_cost, 2); ?>
+                        </span>
+                    </div>
+                    <div class="alert <?php echo $shippingCalc['shipping_metadata']['is_free'] ? 'alert-success' : 'alert-info'; ?> p-2 small mt-2 mb-3 text-center">
+                        <?php echo htmlspecialchars($shippingCalc['shipping_metadata']['message']); ?>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold fs-5 mt-3">
+                        <span>Total Amount</span>
+                        <strong class="primary-blue"><?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+
+
+
+<?php include 'includes/footer.php'; ?>

@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+h1, h2, h3, h4, h5, h6, .montserrat {
+    font-family: 'Montserrat', sans-serif;
+}
+
+.primary-blue {
+    color: #0d6efd;
+}
+
+.bg-primary-blue {
+    background-color: #0d6efd;
+}
+
+/* Product Card Styling */
+.product-card {
+    transition: all 0.3s ease-in-out;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.product-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    background-color: #fff;
+    padding: 10px;
+    transition: transform 0.3s ease-in-out;
+}
+
+.product-card:hover img {
+    transform: scale(1.05);
+}
+
+/* Animations */
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Navbar Customization */
+.navbar-custom {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background-color: #ffffff !important;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80') center/cover;
+    height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+}
+
+/* Custom Buttons */
+.btn-custom {
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap !important;
+    padding: 6px 20px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Forms */
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    padding: 10px 15px;
+}
+.form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    border-color: #0d6efd;
+}
+
+/* Universal Automatic Text Contrast Classes */
+.light-text, 
+.light-text h1, .light-text h2, .light-text h3, .light-text h4, .light-text h5, .light-text h6,
+.light-text p, .light-text span, .light-text a, .light-text i, .light-text small,
+.light-text .nav-link, .light-text .navbar-brand,
+.light-text.btn, .light-text.btn span, .light-text.btn i,
+button.light-text, button.light-text span, button.light-text i {
+    color: #ffffff !important;
+}
+
+.dark-text,
+.dark-text h1, .dark-text h2, .dark-text h3, .dark-text h4, .dark-text h5, .dark-text h6,
+.dark-text p, .dark-text span, .dark-text a, .dark-text i, .dark-text small,
+.dark-text .nav-link, .dark-text .navbar-brand,
+.dark-text.btn, .dark-text.btn span, .dark-text.btn i,
+button.dark-text, button.dark-text span, button.dark-text i {
+    color: #111111 !important;
+}
+
+/* Specific overrides for secondary text when parent has contrast class */
+.light-text .text-secondary, .light-text .text-muted {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark-text .text-secondary, .dark-text .text-muted {
+    color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Ensure icons also inherit color */
+.light-text i, .dark-text i {
+    color: inherit !important;
+}
+

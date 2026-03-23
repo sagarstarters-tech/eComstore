@@ -1,0 +1,16 @@
+# Block direct access to ALL files in /config/
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Block .env files just in case
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>

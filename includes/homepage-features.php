@@ -1,0 +1,37 @@
+<?php
+// includes/homepage-features.php
+$features_enabled = $global_settings['homepage_features_enabled'] ?? '1';
+
+if ($features_enabled == '1') {
+    // Fetch active features
+    $features_query = $conn->query("SELECT * FROM homepage_features WHERE status = 'active' ORDER BY display_order ASC, id DESC");
+    
+    if ($features_query && $features_query->num_rows > 0) {
+        ?>
+        <link href="<?php echo ASSETS_URL; ?>/css/feature-style.css" rel="stylesheet">
+        
+        <section class="feature-section mt-5 border-top">
+            <div class="container">
+                <div class="feature-grid">
+                    <?php while ($f = $features_query->fetch_assoc()): ?>
+                        <div class="feature-block border">
+                            <div class="feature-icon-wrapper">
+                                <?php if ($f['icon_type'] === 'font'): ?>
+                                    <i class="<?php echo htmlspecialchars($f['icon_value']); ?> feature-icon-font"></i>
+                                <?php else: ?>
+                                    <img src="<?php echo ASSETS_URL; ?>/images/<?php echo htmlspecialchars($f['icon_value']); ?>" alt="<?php echo htmlspecialchars($f['title']); ?> Icon" class="feature-icon-img">
+                                <?php endif; ?>
+                            </div>
+                            <h4 class="feature-title"><?php echo htmlspecialchars($f['title']); ?></h4>
+                            <?php if (!empty($f['description'])): ?>
+                                <p class="feature-desc"><?php echo nl2br(htmlspecialchars($f['description'])); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            </div>
+        </section>
+        <?php
+    }
+}
+?>
