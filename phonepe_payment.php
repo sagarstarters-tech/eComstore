@@ -64,6 +64,10 @@ $stmt_trans = $conn->prepare("INSERT INTO phonepe_transactions (order_id, transa
 $stmt_trans->bind_param("isd", $order_id, $merchantTransactionId, $grand_total);
 $stmt_trans->execute();
 
+// Store in session for recovery if redirect parameters are lost
+$_SESSION['last_order_id'] = $order_id;
+$_SESSION['last_merchant_txn_id'] = $merchantTransactionId;
+
 // Send POST request
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $apiUrl);

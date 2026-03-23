@@ -19,10 +19,29 @@ if (isset($_REQUEST['response'])) {
     }
 }
 
+// Fallback to session if parameters are missing from URL (happens on some mobile redirects)
+if (empty($merchantTransactionId) && isset($_SESSION['last_merchant_txn_id'])) {
+    $merchantTransactionId = $_SESSION['last_merchant_txn_id'];
+}
+
 $merchantTransactionId = $conn->real_escape_string($merchantTransactionId);
 
-// Log the redirect request for debugging if it's the first time
-// file_put_contents('logs/phonepe_redirect.log', "[" . date('Y-m-d H:i:s') . "] REDIRECT: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+// Log the redirect request for debugging
+$log_dir = __DIR__ . '/logs';
+if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+file_put_contents($log_dir . '/phonepe_redirect.log', "[" . date('Y-m-d H:i:s') . "] REDIRECT: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+
+// If the redirect doesn't have a code but has a transaction ID, we should check our database
+// The webhook might have already updated it to SUCCESS
+if (empty($code) && !empty($merchantTransactionId)) {
+    $txn_check = $conn->query("SELECT status FROM phonepe_transactions WHERE transaction_id = '$merchantTransactionId'");
+    if ($txn_check && $txn_check->num_rows > 0) {
+        $txn_row = $txn_check->fetch_assoc();
+        if ($txn_row['status'] === 'SUCCESS') {
+            $code = 'SUCCESS';
+        }
+    }
+}
 
 if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') {
     // Use a robust extraction 
@@ -69,7 +88,7 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
                 ];
             }
             
-            sendOrderConfirmationEmail($conn, $order_id, $usr['email'], $usr['name'], $cart_items, $grand_total, $global_currency ?? '₹', 'phonepe');
+            sendOrderConfirmationEmail($conn, $order_id, $usr['email'] ?? '', $usr['name'] ?? 'Customer', $cart_items, $grand_total, $global_currency ?? '₹', 'phonepe');
             
             // Activate Digital Downloads
             require_once 'includes/digital_product_functions.php';
@@ -113,6 +132,12 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
     </script>
     <?php
 } else {
+    // If no transaction ID, redirect to cart with error
+    if (empty($merchantTransactionId)) {
+        $_SESSION['error'] = "Payment failed or was cancelled. No transaction ID received.";
+        header("Location: cart.php");
+        exit;
+    }
     // It's a failure code
     echo "<script>window.location.href = 'phonepe_failure.php?transactionId=" . urlencode($merchantTransactionId) . "';</script>";
 }

@@ -13,6 +13,9 @@ if ($raw_transactionId === 'Unknown' && isset($_REQUEST['response'])) {
 }
 
 $merchantTransactionId = ($raw_transactionId !== 'Unknown') ? $conn->real_escape_string($raw_transactionId) : 'Unknown';
+if ($merchantTransactionId === 'Unknown' && isset($_SESSION['last_merchant_txn_id'])) {
+    $merchantTransactionId = $conn->real_escape_string($_SESSION['last_merchant_txn_id']);
+}
 
 // Try to grab the order ID if possible to offer a retry link
 $retry_link = "checkout.php"; // Default fallback
