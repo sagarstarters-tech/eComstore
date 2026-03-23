@@ -154,6 +154,8 @@ $settings = $settings_q->fetch_assoc();
                         <option value="slide" <?php echo ($settings['transition_type'] == 'slide') ? 'selected' : ''; ?>>Slide Horizontal</option>
                         <option value="fade" <?php echo ($settings['transition_type'] == 'fade') ? 'selected' : ''; ?>>Fade</option>
                         <option value="zoom" <?php echo ($settings['transition_type'] == 'zoom') ? 'selected' : ''; ?>>Zoom</option>
+                        <option value="zoom-in" <?php echo ($settings['transition_type'] == 'zoom-in') ? 'selected' : ''; ?>>Zoom In</option>
+                        <option value="zoom-out" <?php echo ($settings['transition_type'] == 'zoom-out') ? 'selected' : ''; ?>>Zoom Out</option>
                     </select>
                 </div>
                 <div class="col-md-3 mb-3">
