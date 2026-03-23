@@ -14,14 +14,21 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', '86400'); // 24 hours
     
     $host = $_SERVER['HTTP_HOST'] ?? '';
-    if (!empty($host) && $host !== 'localhost' && !filter_var($host, FILTER_VALIDATE_IP)) {
-        // Find the root domain (e.g., sagarstarters.com)
-        $domain = $host;
-        if (strpos($host, 'sagarstarters.com') !== false) {
-            $domain = 'sagarstarters.com';
-        } else {
-            $domain = preg_replace('/^www\./i', '', $host);
-        }
+    // Find the root domain (e.g., sagarstarters.com)
+    $domain = $host;
+    // Strip port if exists
+    if (($pos = strpos($domain, ':')) !== false) {
+        $domain = substr($domain, 0, $pos);
+    }
+
+    if (strpos($domain, 'sagarstarters.com') !== false) {
+        $domain = 'sagarstarters.com';
+    } else {
+        $domain = preg_replace('/^www\./i', '', $domain);
+    }
+    
+    // Only set cookie domain for non-local and non-IP hosts
+    if ($domain !== 'localhost' && !filter_var($domain, FILTER_VALIDATE_IP)) {
         ini_set('session.cookie_domain', '.' . $domain);
     }
     

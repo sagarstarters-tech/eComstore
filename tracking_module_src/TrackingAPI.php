@@ -5,7 +5,7 @@
  * Should be placed in tracking_module_src/
  */
 
-session_start();
+require_once __DIR__ . '/../includes/session_setup.php';
 
 require_once __DIR__ . '/src/Config/TrackingConfig.php';
 require_once __DIR__ . '/src/Repositories/TrackingRepository.php';

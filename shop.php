@@ -111,11 +111,11 @@ if (!empty($global_settings[$setting_key]) && file_exists(__DIR__ . '/assets/ima
                 <h5 class="fw-bold mb-3">Categories</h5>
                 <ul class="list-unstyled mb-4">
                     <li class="mb-2">
-                        <a href="<?php echo SITE_URL; ?>/shop.php" class="text-decoration-none text-dark <?php echo !isset($_GET['category']) && !isset($_GET['category_slug']) ? 'fw-bold primary-blue' : ''; ?>">All Categories</a>
+                        <a href="<?php echo SITE_URL; ?>/shop.php" class="text-decoration-none <?php echo !isset($_GET['category']) && !isset($_GET['category_slug']) ? 'fw-bold primary-blue' : ''; ?>">All Categories</a>
                     </li>
                     <?php while($c = $cats->fetch_assoc()): ?>
                     <li class="mb-2">
-                        <a href="<?php echo SITE_URL; ?>/shop.php?category=<?php echo $c['id']; ?>" class="text-decoration-none text-dark <?php echo (isset($_GET['category']) && $_GET['category'] == $c['id']) ? 'fw-bold primary-blue' : ''; ?>">
+                        <a href="<?php echo SITE_URL; ?>/shop.php?category=<?php echo $c['id']; ?>" class="text-decoration-none <?php echo (isset($_GET['category']) && $_GET['category'] == $c['id']) ? 'fw-bold primary-blue' : ''; ?>">
                             <?php echo htmlspecialchars($c['name']); ?>
                         </a>
                     </li>

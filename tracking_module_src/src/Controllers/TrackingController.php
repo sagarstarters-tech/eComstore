@@ -62,8 +62,17 @@ class TrackingController {
 
     private function adminUpdateTracking() {
         // Basic security check - should ideally verify admin session here
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            $this->sendJson(['error' => 'Unauthorized Admin Access'], 403);
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+        
+        $role = $_SESSION['role'] ?? null;
+        if ($role !== 'admin') {
+            $msg = 'Unauthorized Admin Access';
+            if (empty($role)) $msg .= ' (Session missing or role not set)';
+            else $msg .= ' (Role: ' . $role . ')';
+            
+            $this->sendJson(['error' => $msg], 403);
         }
 
         $order_id = intval($_POST['order_id'] ?? 0);
