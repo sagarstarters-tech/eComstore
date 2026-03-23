@@ -27,10 +27,10 @@
 .hero-slider[data-transition="slide"] .hero-slide.active { transform: translateX(0); } 
 .hero-slider[data-transition="slide"] .hero-slide.prev-slide { transform: translateX(-100%); } 
 
-/* Zoom Transitions */
+/* Zoom: Balanced growing zoom */
 .hero-slider[data-transition="zoom"] .hero-slide { 
-    transform: scale(1.1);
-    transition: transform var(--transition-speed) ease, opacity var(--transition-speed) ease, visibility var(--transition-speed); 
+    transform: scale(0.85);
+    transition: transform var(--transition-speed) cubic-bezier(0.165, 0.84, 0.44, 1), opacity var(--transition-speed), visibility var(--transition-speed); 
 }
 .hero-slider[data-transition="zoom"] .hero-slide.active { 
     transform: scale(1);
