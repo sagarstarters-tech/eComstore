@@ -133,3 +133,8 @@ Stack trace:
 #3 C:\xampp\htdocs\eComstore\index.php(2): include('C:\\xampp\\htdocs...')
 #4 {main}
   thrown in C:\xampp\htdocs\eComstore\includes\SeoRepository.php on line 19
+[23-Mar-2026 13:03:30 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot add or update a child row: a foreign key constraint fails (`ecommerce_db`.`phonepe_transactions`, CONSTRAINT `fk_phonepe_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE) in C:\xampp\htdocs\eComstore\tmp_test_insert.php:4
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\tmp_test_insert.php(4): mysqli->query('INSERT INTO pho...')
+#1 {main}
+  thrown in C:\xampp\htdocs\eComstore\tmp_test_insert.php on line 4

@@ -25,54 +25,57 @@ $merchantTransactionId = $conn->real_escape_string($merchantTransactionId);
 // file_put_contents('logs/phonepe_redirect.log', "[" . date('Y-m-d H:i:s') . "] REDIRECT: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
 
 if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') {
-    // Clear cart since payment succeeded
-    if (isset($_SESSION['cart'])) {
-        unset($_SESSION['cart']);
-    }
-
-    // Try to get Order ID from DB
-    $order_id = 'N/A';
-    $txn_q = $conn->query("SELECT order_id, amount, status, raw_payload FROM phonepe_transactions WHERE transaction_id = '$merchantTransactionId'");
+    // Use a robust extraction 
+    $txn_val = $conn->real_escape_string($merchantTransactionId);
+    $txn_q = $conn->query("SELECT order_id, amount, status FROM phonepe_transactions WHERE transaction_id = '$txn_val'");
+    
+    $order_id = 0;
     if ($txn_q && $txn_q->num_rows > 0) {
         $txn = $txn_q->fetch_assoc();
-        $order_id = $txn['order_id'];
-        
-        // If the webhook hasn't fired yet (e.g. localhost), update the DB manually here
-        if ($txn['status'] !== 'SUCCESS') {
-            $conn->query("UPDATE phonepe_transactions SET status = 'SUCCESS' WHERE transaction_id = '$merchantTransactionId'");
-            $conn->query("UPDATE orders SET status = 'processing', payment_method = 'phonepe' WHERE id = $order_id");
-            
-            // Send Order Confirmation Email
-            require_once 'includes/mail_functions.php';
-            $ord_q = $conn->query("SELECT * FROM orders WHERE id=$order_id");
-            if($ord_q->num_rows > 0) {
-                $ord = $ord_q->fetch_assoc();
-                $user_id = $ord['user_id'];
-                $grand_total = $ord['total_amount'];
-        
-                $usr_q = $conn->query("SELECT * FROM users WHERE id=$user_id");
-                $usr = $usr_q->fetch_assoc();
-                
-                $cart_items = [];
-                $item_q = $conn->query("SELECT oi.*, p.name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = $order_id");
-                while($itm = $item_q->fetch_assoc()) {
-                    $cart_items[] = [
-                        'name' => $itm['name'],
-                        'qty' => $itm['quantity'],
-                        'price' => $itm['price']
-                    ];
-                }
-                
-                sendOrderConfirmationEmail($conn, $order_id, $usr['email'], $usr['name'], $cart_items, $grand_total, $global_currency ?? '₹', 'phonepe');
-                
-                // Activate Digital Downloads
-                require_once 'includes/digital_product_functions.php';
-                activateDigitalDownloads($conn, $order_id);
-            }
-        }
+        $order_id = (int)$txn['order_id'];
     }
 
+    // If still no order_id, try to fallback to session if possible (less reliable but better than nothing)
+    if ($order_id === 0 && isset($_SESSION['last_order_id'])) {
+        $order_id = (int)$_SESSION['last_order_id'];
+    }
+
+    if ($order_id > 0) {
+        // Clear cart now that we have a confirmed order
+        if (isset($_SESSION['cart'])) { unset($_SESSION['cart']); }
+
+        // Manually update if the status is not SUCCESS in DB yet
+        $conn->query("UPDATE phonepe_transactions SET status = 'SUCCESS' WHERE transaction_id = '$txn_val' AND status != 'SUCCESS'");
+        $conn->query("UPDATE orders SET status = 'processing', payment_method = 'phonepe' WHERE id = $order_id AND status = 'pending'");
+        
+        // ── Order Confirmation ──────────────────────────────────────
+        require_once 'includes/mail_functions.php';
+        $ord_q = $conn->query("SELECT * FROM orders WHERE id=$order_id");
+        if($ord_q && $ord_q->num_rows > 0) {
+            $ord = $ord_q->fetch_assoc();
+            $user_id = $ord['user_id'];
+            $grand_total = $ord['total_amount'];
     
+            $usr_q = $conn->query("SELECT * FROM users WHERE id=$user_id");
+            $usr = $usr_q->fetch_assoc();
+            
+            $cart_items = [];
+            $item_q = $conn->query("SELECT oi.*, p.name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = $order_id");
+            while($itm = $item_q->fetch_assoc()) {
+                $cart_items[] = [
+                    'name' => $itm['name'],
+                    'qty' => $itm['quantity'],
+                    'price' => $itm['price']
+                ];
+            }
+            
+            sendOrderConfirmationEmail($conn, $order_id, $usr['email'], $usr['name'], $cart_items, $grand_total, $global_currency ?? '₹', 'phonepe');
+            
+            // Activate Digital Downloads
+            require_once 'includes/digital_product_functions.php';
+            activateDigitalDownloads($conn, $order_id);
+        }
+    }
     // PhonePe returns amount in paisa
     $displayAmount = number_format($amount / 100, 2);
 
