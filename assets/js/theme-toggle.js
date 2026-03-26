@@ -20,15 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     themeToggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        const isDark = document.body.classList.contains('dark-mode-active');
-        const newTheme = isDark ? 'light' : 'dark';
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        const newTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+        
         console.log("Toggling theme to:", newTheme);
         applyTheme(newTheme);
         
         // Refresh the page after localized state is saved
         setTimeout(() => {
             window.location.reload();
-        }, 100);
+        }, 50);
     });
 
     function applyTheme(theme) {
@@ -36,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.setAttribute('data-mdb-theme', theme);
         document.documentElement.setAttribute('data-bs-theme', theme);
         localStorage.setItem('theme', theme);
+        
+        const icon = document.getElementById('themeIcon') || themeToggleBtn.querySelector('i');
         
         // Custom CSS class toggle for specific styling overrides
         if (theme === 'dark') {

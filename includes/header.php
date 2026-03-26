@@ -304,8 +304,24 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
 
       <!-- Theme Toggle Button -->
       <button id="themeToggleBtn" class="btn btn-link text-reset p-2 me-1 rounded-circle border-0 shadow-none" aria-label="Toggle theme">
-          <i class="fas fa-moon fs-5"></i>
+          <i class="fas fa-moon fs-5" id="themeIcon"></i>
       </button>
+      <script>
+          // Immediate icon fix to prevent flicker
+          (function() {
+              var theme = localStorage.getItem('theme') || 'light';
+              var icon = document.getElementById('themeIcon');
+              if (icon) {
+                  if (theme === 'dark') {
+                      icon.classList.remove('fa-moon');
+                      icon.classList.add('fa-sun');
+                  } else {
+                      icon.classList.remove('fa-sun');
+                      icon.classList.add('fa-moon');
+                  }
+              }
+          })();
+      </script>
 
       <div id="header-auth-container">
           <?php if(isset($_SESSION['user_id'])): ?>
