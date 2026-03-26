@@ -32,13 +32,59 @@
 .admin-sidebar::-webkit-scrollbar { width: 4px; }
 .admin-sidebar::-webkit-scrollbar-thumb { background: var(--sidebar-hover); border-radius: 4px; }
 
-.admin-sidebar-logo {
-    padding: 1.5rem 1.25rem;
+.admin-sidebar-header {
     background: #0f172a;
+    padding: 1.25rem;
+    height: 70px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.sidebar-collapse-btn {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    color: var(--sidebar-text);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.sidebar-collapse-btn:hover {
+    background: rgba(37, 99, 235, 0.2);
+    color: var(--sidebar-text-active);
+}
+
+/* Sidebar Collapsed State (Desktop) */
+@media (min-width: 992px) {
+    body.sidebar-collapsed .admin-sidebar {
+        width: var(--sidebar-collapsed-width);
+    }
+    
+    body.sidebar-collapsed .admin-main-col {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+    
+    body.sidebar-collapsed .admin-sidebar .list-group-item span,
+    body.sidebar-collapsed .admin-sidebar .list-group-item .ms-auto,
+    body.sidebar-collapsed .admin-sidebar .list-group-header,
+    body.sidebar-collapsed .admin-sidebar .admin-sidebar-logo,
+    body.sidebar-collapsed .admin-sidebar .badge {
+        display: none !important;
+    }
+    
+    body.sidebar-collapsed .admin-sidebar .list-group-item {
+        justify-content: center;
+        padding: 15px;
+        gap: 0;
+    }
+    
+    body.sidebar-collapsed .admin-sidebar-header {
+        justify-content: center;
+    }
 }
 
 .admin-sidebar .list-group-item {

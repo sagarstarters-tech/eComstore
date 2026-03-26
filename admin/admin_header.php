@@ -62,12 +62,17 @@ $__admin_menu = require __DIR__ . '/config/menu.php';
 
         <!-- Sidebar -->
         <div class="admin-sidebar p-0" id="adminSidebar">
-            <!-- Logo -->
-            <div class="admin-sidebar-logo text-center">
-                <img src="<?php echo ASSETS_URL; ?>/images/<?php echo htmlspecialchars($global_settings['header_logo_image'] ?? 'logo.jpg'); ?>"
-                     alt="Logo"
-                     class="img-fluid"
-                     style="height:<?php echo htmlspecialchars($global_settings['header_logo_height'] ?? '45'); ?>px; width:auto; object-fit:contain;">
+            <!-- Logo & Toggle -->
+            <div class="admin-sidebar-header d-flex align-items-center justify-content-between">
+                <div class="admin-sidebar-logo p-0">
+                    <img src="<?php echo ASSETS_URL; ?>/images/<?php echo htmlspecialchars($global_settings['header_logo_image'] ?? 'logo.jpg'); ?>"
+                         alt="Logo"
+                         class="img-fluid"
+                         style="height:32px; width:auto; object-fit:contain;">
+                </div>
+                <button class="sidebar-collapse-btn" id="sidebarCollapseTrigger" type="button">
+                   <i class="fas fa-bars-staggered"></i>
+                </button>
             </div>
 
             <!-- Menu -->
