@@ -135,25 +135,22 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
         .success-overlay.show { opacity: 1; visibility: visible; }
         .success-content { text-align: center; transform: scale(0.8); transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
         .success-overlay.show .success-content { transform: scale(1); }
-        .checkmark-circle {
-            width: 150px; height: 150px; position: relative;
-            display: inline-block; vertical-align: top;
-            border-radius: 50%; border: 5px solid #45c05c;
-            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
-        }
-        .checkmark-stem { width: 10px; height: 90px; border-radius: 5px; background: #45c05c; position: absolute; top: 25px; left: 85px; transform: rotate(45deg); opacity: 0; animation: checkmark-stem 0.5s ease-in-out 0.8s forwards; }
-        .checkmark-kick { width: 50px; height: 10px; border-radius: 5px; background: #45c05c; position: absolute; top: 85px; left: 45px; transform: rotate(45deg); opacity: 0; animation: checkmark-kick 0.5s ease-in-out 0.8s forwards; }
-        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 100px #fff; } }
-        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
-        @keyframes checkmark-stem { 0% { height: 0; opacity: 1; } 100% { height: 90px; opacity: 1; } }
-        @keyframes checkmark-kick { 0% { width: 0; opacity: 1; } 100% { width: 50px; opacity: 1; } }
+
+        /* SVG Tick Animation */
+        .ft-green-tick { display: block; margin: 0 auto; }
+        .ft-green-tick .circle { stroke-dasharray: 140; stroke-dashoffset: 140; animation: circle 0.8s ease-in-out forwards; }
+        .ft-green-tick .tick { stroke-dasharray: 30; stroke-dashoffset: 30; animation: tick 0.5s ease-out 0.8s forwards; }
+        @keyframes circle { to { stroke-dashoffset: 0; } }
+        @keyframes tick { to { stroke-dashoffset: 0; } }
     </style>
 
     <div class="success-overlay" id="paymentSuccessOverlay">
         <div class="success-content">
-            <div class="checkmark-circle">
-                <div class="checkmark-stem"></div>
-                <div class="checkmark-kick"></div>
+            <div class="svg-container mb-4">
+                <svg class="ft-green-tick" xmlns="http://www.w3.org/2000/svg" height="150" width="150" viewBox="0 0 48 48" aria-hidden="true">
+                    <circle class="circle" fill="#5bb543" cx="24" cy="24" r="22"/>
+                    <path class="tick" fill="none" stroke="#FFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" d="M14 27l5.917 4.917L34 17"/>
+                </svg>
             </div>
             <h1 class="display-3 fw-bold mt-4" style="color: #45c05c;">Success!</h1>
             <p class="fs-4 text-muted">Your payment was received successfully.</p>
