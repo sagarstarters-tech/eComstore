@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const newTheme = isDark ? 'light' : 'dark';
         console.log("Toggling theme to:", newTheme);
         applyTheme(newTheme);
+        
+        // Refresh the page after localized state is saved
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
     });
 
     function applyTheme(theme) {
