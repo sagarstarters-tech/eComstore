@@ -93,7 +93,7 @@ if (!empty($global_settings[$setting_key]) && file_exists(__DIR__ . '/assets/ima
 }
 ?>
     <div class="row mb-5">
-        <div class="col-12 text-center <?php echo $hero_bg_class; ?> p-5 rounded-3" style="<?php echo $hero_style; ?>" data-aos="fade-down">
+        <div class="col-12 text-center <?php echo $hero_bg_class; ?> p-4 p-md-5 rounded-3" style="<?php echo $hero_style; ?>" data-aos="fade-down">
             <h1 class="display-5 fw-bold montserrat <?php echo $text_color; ?>">Our Shop</h1>
             <p class="lead <?php echo $text_muted; ?>">Browse our amazing collection</p>
         </div>
@@ -153,7 +153,7 @@ if (!empty($global_settings[$setting_key]) && file_exists(__DIR__ . '/assets/ima
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title fw-bold mb-1 text-truncate"><?php echo htmlspecialchars($p['name']); ?></h5>
                                 <p class="card-text text-muted small text-truncate mb-3"><?php echo htmlspecialchars(!empty($p['short_description']) ? $p['short_description'] : $p['description']); ?></p>
-                                <div class="mt-auto d-flex justify-content-between align-items-center pt-3 border-top">
+                                <div class="mt-auto d-flex flex-wrap justify-content-between align-items-center pt-3 border-top gap-2">
                                     <?php if ($p['sale_price'] > 0): ?>
                                         <div class="d-flex flex-column">
                                             <span class="text-muted text-decoration-line-through small" style="line-height:1;"><?php echo $global_currency; ?><?php echo number_format($p['regular_price'], 2); ?></span>

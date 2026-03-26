@@ -99,8 +99,8 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
     $displayAmount = number_format($amount / 100, 2);
 
     ?>
-    <div class="container mt-5 pt-5 mb-5 text-center">
-        <div class="card shadow-sm border-0 p-5 mx-auto" style="max-width: 600px;">
+    <div class="container mt-5 pt-5 mb-5 text-center px-3">
+    <div class="card shadow-sm border-0 p-4 p-md-5 mx-auto" style="max-width: 600px;">
             <i class="fas fa-check-circle fa-5x text-success mb-4"></i>
             <h2 class="fw-bold mb-3">Payment Successful</h2>
             <p class="text-muted fs-5 mb-4">Your payment has been processed successfully.</p>

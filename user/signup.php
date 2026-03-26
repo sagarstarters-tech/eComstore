@@ -3,7 +3,7 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card product-card">
-                <div class="card-body p-5">
+                <div class="card-body p-4 p-md-5">
                     <h2 class="text-center montserrat primary-blue mb-4">Sign Up</h2>
                     <?php if(isset($_SESSION['error'])): ?>
                         <div class="alert alert-danger"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>

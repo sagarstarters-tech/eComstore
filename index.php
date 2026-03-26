@@ -44,7 +44,7 @@ include 'includes/hero-slider.php';
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title fw-bold text-truncate"><?php echo htmlspecialchars($p['name']); ?></h5>
                         <p class="card-text text-muted small text-truncate"><?php echo htmlspecialchars(!empty($p['short_description']) ? $p['short_description'] : $p['description']); ?></p>
-                        <div class="mt-auto d-flex justify-content-between align-items-center pt-3 border-top">
+                        <div class="mt-auto d-flex flex-wrap justify-content-between align-items-center pt-3 border-top gap-2">
                             <?php if ($p['sale_price'] > 0): ?>
                                 <div class="d-flex flex-column">
                                     <span class="text-muted text-decoration-line-through small" style="line-height:1;"><?php echo $global_currency; ?><?php echo number_format($p['regular_price'], 2); ?></span>

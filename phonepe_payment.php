@@ -176,8 +176,8 @@ if (isset($res['success']) && $res['success'] && isset($res['data']['instrumentR
         include 'includes/header.php';
     }
     
-    echo "<div class='container mt-5 pt-5 text-center'>";
-    echo "<div class='card product-card p-5 shadow-sm border-0'>";
+    echo "<div class='container mt-5 pt-5 text-center px-3'>";
+    echo "<div class='card product-card p-4 p-md-5 shadow-sm border-0'>";
     echo "<i class='fas fa-exclamation-triangle fa-4x text-danger mb-4'></i>";
     echo "<h2 class='fw-bold mb-3'>Payment Initialization Failed</h2>";
     echo "<p class='text-muted mb-4'>" . htmlspecialchars($errorMsg) . "</p>";

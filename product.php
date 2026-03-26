@@ -298,7 +298,7 @@ if (!empty($global_settings['hero_banner_product']) && file_exists(__DIR__ . '/a
             
             
             <?php if($product['stock'] > 0): ?>
-            <form id="addToCartForm" action="<?php echo SITE_URL; ?>/includes/cart_actions.php" method="POST" class="d-flex align-items-center mb-4 bg-light p-3 rounded">
+            <form id="addToCartForm" action="<?php echo SITE_URL; ?>/includes/cart_actions.php" method="POST" class="d-flex flex-wrap align-items-center mb-4 bg-light p-3 rounded gap-3">
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
                 <label class="fw-bold me-3">Quantity:</label>
@@ -558,7 +558,7 @@ if (!empty($global_settings['hero_banner_product']) && file_exists(__DIR__ . '/a
                     <img src="<?php echo htmlspecialchars($p['image'] ? ASSETS_URL.'/images/'.$p['image'] : 'https://dummyimage.com/400x400/dee2e6/6c757d.jpg&text=No+Image'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy" style="object-fit: <?php echo htmlspecialchars($p['image_fit'] ?? 'contain'); ?>; background-color:#fff;">
                     <div class="card-body">
                         <h6 class="card-title fw-bold text-truncate"><?php echo htmlspecialchars($p['name']); ?></h6>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
                             <?php if ($p['sale_price'] > 0): ?>
                                 <div>
                                     <span class="text-muted text-decoration-line-through small me-1"><?php echo $global_currency; ?><?php echo number_format($p['regular_price'], 2); ?></span>
