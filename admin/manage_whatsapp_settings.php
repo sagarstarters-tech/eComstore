@@ -96,7 +96,7 @@ $logs = $conn->query($logs_query);
                     <div class="row mb-4">
                         <div class="col-md-6 text-start">
                             <label class="form-label fw-bold d-block">Sender Number</label>
-                            <?php echo render_phone_input('sender_number', $settings['sender_number'], false); ?>
+                            <?php echo render_phone_input('sender_number', $settings['sender_number'], true); ?>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Business API Token <small class="text-muted">(Optional)</small></label>
@@ -133,7 +133,7 @@ $logs = $conn->query($logs_query);
                         <div class="row">
                             <div class="col-md-6 mb-3 text-start">
                                 <label class="form-label fw-bold d-block">Widget Phone Number</label>
-                                <?php echo render_phone_input('chat_widget_number', $settings['chat_widget_number'], false); ?>
+                                <?php echo render_phone_input('chat_widget_number', $settings['chat_widget_number'], true); ?>
                                 <small class="text-muted">Select country code and enter number.</small>
                             </div>
                             <div class="col-md-6 mb-3">

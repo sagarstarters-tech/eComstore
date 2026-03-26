@@ -257,7 +257,7 @@ $total_pages = ceil($total_users / $limit);
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone</label>
-                            <?php echo render_phone_input('phone', '', false); ?>
+                            <?php echo render_phone_input('phone', '', true); ?>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Zip Code</label>
@@ -331,7 +331,7 @@ $total_pages = ceil($total_users / $limit);
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone</label>
-                            <?php echo render_phone_input('phone', '', false, '', 'edit_phone_group'); ?>
+                            <?php echo render_phone_input('phone', '', true, '', 'edit_phone_group'); ?>
                         </div>
                     </div>
                     

@@ -193,7 +193,7 @@ function cv($cs, $key) {
                     </div>
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold d-block">Phone Number</label>
-                        <?php echo render_phone_input('contact_phone', $cs['contact_phone'] ?? '', false); ?>
+                        <?php echo render_phone_input('contact_phone', $cs['contact_phone'] ?? '', true); ?>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Email Label</label>
