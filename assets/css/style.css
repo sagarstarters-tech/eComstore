@@ -316,3 +316,52 @@ body.dark-mode-active .social-icon-circle:hover,
     background-color: var(--primary) !important;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
+
+/* --- Category Sidebar Hover Effect --- */
+.category-link {
+    display: block;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: var(--text-color, #333) !important;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none !important;
+}
+
+.category-link:hover, .category-link.active {
+    background-color: rgba(13, 110, 253, 0.05); /* Very light primary */
+    color: var(--primary, #0d6efd) !important;
+    padding-left: 20px;
+    transform: translateX(5px);
+}
+
+.category-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 0;
+    background-color: var(--primary, #0d6efd);
+    transition: height 0.3s ease;
+    border-radius: 0 4px 4px 0;
+}
+
+.category-link:hover::before, .category-link.active::before {
+    height: 60%;
+}
+
+body.dark-mode-active .category-link,
+[data-mdb-theme="dark"] .category-link {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode-active .category-link:hover,
+[data-mdb-theme="dark"] .category-link:hover,
+body.dark-mode-active .category-link.active,
+[data-mdb-theme="dark"] .category-link.active {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff !important;
+}
