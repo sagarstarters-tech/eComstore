@@ -115,7 +115,13 @@ function makeAbsoluteUrl($path) {
     }
     
     // Clean up multiple slashes (e.g., //assets becomes /assets)
-    $finalPath = preg_replace('#/+#', '/', '/' . $finalPath);
+    // IMPORTANT: Don't let it break the protocol (http://)
+    if (strpos($finalPath, '://') !== false) {
+        $parts = explode('://', $finalPath, 2);
+        $finalPath = $parts[0] . '://' . preg_replace('#/+#', '/', $parts[1]);
+    } else {
+        $finalPath = preg_replace('#/+#', '/', '/' . $finalPath);
+    }
     
     return $scheme . "://" . $host . $finalPath;
 }
@@ -371,8 +377,6 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
         }
         ?>
       </ul>
-      
-      </ul>
     </div>
 
     <?php if(isset($global_settings['enable_header_search']) && $global_settings['enable_header_search'] == '1'): ?>
@@ -390,7 +394,6 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
         </div>
     </div>
     <?php endif; ?>
-    </div>
   </div>
 </nav>
 
@@ -402,14 +405,22 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
  */
 function refreshUserState() {
     // Determine the correct path to the auth check utility
-    const siteUrl = '<?php echo SITE_URL; ?>'.replace(/\/+$/, '');
-    let checkPath = siteUrl + '/includes/ajax_auth_check.php';
+    let siteUrl = '<?php echo SITE_URL; ?>'.replace(/\/+$/, '');
     
-    // Ensure path starts with / and doesn't have duplicate slashes
-    if (!checkPath.startsWith('http') && !checkPath.startsWith('/')) {
-        checkPath = '/' + checkPath;
+    // Safety check: If siteUrl contains a dot but no protocol (e.g. "www.example.com"), 
+    // it's likely an absolute domain. Browsers treat "www.xxx" as relative without protocol.
+    if (siteUrl && siteUrl.includes('.') && !siteUrl.includes('://')) {
+        siteUrl = (window.location.protocol || 'https:') + '//' + siteUrl;
     }
-    checkPath = checkPath.replace(/\/+/g, '/');
+    
+    let checkPath = '';
+    if (siteUrl.indexOf('http') === 0) {
+        checkPath = siteUrl.replace(/\/+$/, '') + '/includes/ajax_auth_check.php';
+    } else {
+        // Fallback to absolute path from root
+        checkPath = (siteUrl.startsWith('/') ? siteUrl : '/' + siteUrl) + '/includes/ajax_auth_check.php';
+        checkPath = checkPath.replace(/\/+/g, '/');
+    }
 
     // Try primary path
     fetch(checkPath, { credentials: 'same-origin' })
