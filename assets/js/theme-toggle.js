@@ -2,22 +2,28 @@
  * Theme Toggle Script for Dark/Light Mode
  */
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Theme Toggle Script Loaded!");
     const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (!themeToggleBtn) return;
+    if (!themeToggleBtn) {
+        console.error("Theme Toggle Button not found in the DOM.");
+        return;
+    }
 
     const icon = themeToggleBtn.querySelector('i');
     
     // Check local storage for theme preference
     const currentTheme = localStorage.getItem('theme') || 'light';
+    console.log("Initial theme is:", currentTheme);
     
     // Apply initial theme
     applyTheme(currentTheme);
 
-    themeToggleBtn.addEventListener('click', () => {
-        const theme = document.documentElement.getAttribute('data-mdb-theme') === 'dark' ? 'light' : 'dark';
-        applyTheme(theme);
-        // Fallback for native bootstrap 5
-        document.documentElement.setAttribute('data-bs-theme', theme);
+    themeToggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isDark = document.body.classList.contains('dark-mode-active');
+        const newTheme = isDark ? 'light' : 'dark';
+        console.log("Toggling theme to:", newTheme);
+        applyTheme(newTheme);
     });
 
     function applyTheme(theme) {
@@ -29,12 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Custom CSS class toggle for specific styling overrides
         if (theme === 'dark') {
             document.body.classList.add('dark-mode-active');
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
+            if(icon) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
         } else {
             document.body.classList.remove('dark-mode-active');
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
+            if(icon) {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
         }
     }
 });

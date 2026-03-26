@@ -177,7 +177,7 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
     <!-- Custom CSS -->
-    <link href="<?php echo ASSETS_URL; ?>/css/style.css" rel="stylesheet">
+    <link href="<?php echo ASSETS_URL; ?>/css/style.css?v=1.1" rel="stylesheet">
     <!-- Theme Customizer CSS Variables -->
     <?php
     require_once __DIR__ . '/ThemeService.php';
@@ -186,7 +186,7 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     <!-- WhatsApp Widget CSS -->
     <link href="<?php echo SITE_URL; ?>/whatsapp-style.css" rel="stylesheet">
     <!-- Custom Animations CSS -->
-    <link href="<?php echo ASSETS_URL; ?>/css/animations.css" rel="stylesheet">
+    <link href="<?php echo ASSETS_URL; ?>/css/animations.css?v=1.1" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <?php
@@ -210,7 +210,7 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
             document.documentElement.setAttribute('data-bs-theme', theme);
         })();
     </script>
-    <script src="<?php echo ASSETS_URL; ?>/js/theme-toggle.js" defer></script>
+    <script src="<?php echo ASSETS_URL; ?>/js/theme-toggle.js?v=1.1" defer></script>
 
     <!-- Register Service Worker -->
     <script>
