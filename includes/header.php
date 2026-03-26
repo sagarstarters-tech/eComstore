@@ -202,6 +202,16 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     </script>
     <script src="<?php echo ASSETS_URL; ?>/js/auto-contrast.js" defer></script>
     
+    <!-- Theme Selection Check Script for Immediate Load (prevents unstyled flash) -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-mdb-theme', theme);
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+    <script src="<?php echo ASSETS_URL; ?>/js/theme-toggle.js" defer></script>
+
     <!-- Register Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {
@@ -285,6 +295,11 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
             <?php endif; ?>
           </a>
       </div>
+
+      <!-- Theme Toggle Button -->
+      <button id="themeToggleBtn" class="btn btn-link text-reset p-2 me-1 rounded-circle border-0 shadow-none" aria-label="Toggle theme">
+          <i class="fas fa-moon fs-5"></i>
+      </button>
 
       <div id="header-auth-container">
           <?php if(isset($_SESSION['user_id'])): ?>
