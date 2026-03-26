@@ -124,10 +124,57 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
         </div>
     </div>
     
-    <!-- PhonePe Requested Popup -->
+    <!-- PhonePe Requested Success Overlay (Amazon/Flipkart Style) -->
+    <style>
+        .success-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: #fff; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.5s ease;
+        }
+        .success-overlay.show { opacity: 1; visibility: visible; }
+        .success-content { text-align: center; transform: scale(0.8); transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .success-overlay.show .success-content { transform: scale(1); }
+        .checkmark-circle {
+            width: 150px; height: 150px; position: relative;
+            display: inline-block; vertical-align: top;
+            border-radius: 50%; border: 5px solid #45c05c;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .checkmark-stem { width: 10px; height: 90px; border-radius: 5px; background: #45c05c; position: absolute; top: 25px; left: 85px; transform: rotate(45deg); opacity: 0; animation: checkmark-stem 0.5s ease-in-out 0.8s forwards; }
+        .checkmark-kick { width: 50px; height: 10px; border-radius: 5px; background: #45c05c; position: absolute; top: 85px; left: 45px; transform: rotate(45deg); opacity: 0; animation: checkmark-kick 0.5s ease-in-out 0.8s forwards; }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 100px #fff; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+        @keyframes checkmark-stem { 0% { height: 0; opacity: 1; } 100% { height: 90px; opacity: 1; } }
+        @keyframes checkmark-kick { 0% { width: 0; opacity: 1; } 100% { width: 50px; opacity: 1; } }
+    </style>
+
+    <div class="success-overlay" id="paymentSuccessOverlay">
+        <div class="success-content">
+            <div class="checkmark-circle">
+                <div class="checkmark-stem"></div>
+                <div class="checkmark-kick"></div>
+            </div>
+            <h1 class="display-3 fw-bold mt-4" style="color: #45c05c;">Success!</h1>
+            <p class="fs-4 text-muted">Your payment was received successfully.</p>
+            <div class="mt-4 p-3 bg-light rounded shadow-sm border mx-auto" style="max-width: 350px;">
+                <p class="mb-1 text-secondary">Order ID: <span class="fw-bold text-dark">#<?php echo htmlspecialchars($order_id); ?></span></p>
+                <p class="mb-0 text-secondary">Amount: <span class="fw-bold text-dark"><?php echo htmlspecialchars($global_settings['currency_symbol'] ?? '₹'); ?><?php echo $displayAmount; ?></span></p>
+            </div>
+            <p class="mt-5 text-muted small">Redirecting you to your orders in a moment...</p>
+        </div>
+    </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            alert("Payment Successful!\nOrder ID: <?php echo htmlspecialchars($order_id); ?>\nTransaction ID: <?php echo htmlspecialchars($merchantTransactionId); ?>");
+            const overlay = document.getElementById('paymentSuccessOverlay');
+            setTimeout(() => {
+                overlay.classList.add('show');
+                // Auto redirect after 4 seconds
+                setTimeout(() => {
+                    window.location.href = 'user/orders.php';
+                }, 4000);
+            }, 300);
         });
     </script>
     <?php
@@ -135,7 +182,7 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
     // If no transaction ID, redirect to cart with error
     if (empty($merchantTransactionId)) {
         $_SESSION['error'] = "Payment failed or was cancelled. No transaction ID received.";
-        header("Location: cart.php");
+        echo "<script>window.location.href = 'cart.php';</script>";
         exit;
     }
     // It's a failure code

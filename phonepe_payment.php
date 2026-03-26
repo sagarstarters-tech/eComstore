@@ -97,9 +97,73 @@ if ($err) {
 if (isset($res['success']) && $res['success'] && isset($res['data']['instrumentResponse']['redirectInfo']['url'])) {
     $paymentUrl = $res['data']['instrumentResponse']['redirectInfo']['url'];
     
-    // Redirect user to the Payment Page via HTTP Header
-    // No output has been sent yet from checkout.php, so this is safe and better than JS
-    header("Location: " . $paymentUrl);
+    // ── Modern Processing Overlay (Amazon/Flipkart Style) ────────
+    // We replace the header() with a UI that warns the user not to refresh
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Processing Payment...</title>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.0/mdb.min.css" rel="stylesheet"/>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+        <style>
+            body { background: #f8f9fa; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+            .processing-card { background: #fff; padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; max-width: 450px; width: 90%; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+            @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+            .spinner-container { position: relative; width: 100px; height: 100px; margin: 0 auto 30px; }
+            .spinner-main { width: 100%; height: 100%; border: 4px solid rgba(13, 110, 253, 0.1); border-top: 4px solid #0d6efd; border-radius: 50%; animation: spin 1s linear infinite; }
+            .spinner-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0d6efd; font-size: 2rem; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .warning-box { background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107; padding: 15px; margin-top: 25px; border-radius: 8px; text-align: left; }
+            .warning-box i { color: #ff9800; margin-right: 10px; }
+        </style>
+    </head>
+    <body>
+        <div class="processing-card">
+            <div class="spinner-container">
+                <div class="spinner-main"></div>
+                <i class="fas fa-shield-alt spinner-icon"></i>
+            </div>
+            <h3 class="fw-bold mb-2">Securely Connecting...</h3>
+            <p class="text-muted">Redirecting you to the PhonePe payment gateway. Please wait a moment.</p>
+            
+            <div class="warning-box">
+                <p class="mb-0 small fw-bold text-dark">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Do not refresh this page or click the Back button.
+                </p>
+            </div>
+            
+            <div class="mt-4">
+                <div class="progress" style="height: 6px; border-radius: 10px;">
+                    <div id="pBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let width = 0;
+            const bar = document.getElementById('pBar');
+            const interval = setInterval(() => {
+                width += 5;
+                bar.style.width = width + '%';
+                if (width >= 100) {
+                    clearInterval(interval);
+                    window.location.href = "<?php echo $paymentUrl; ?>";
+                }
+            }, 100);
+
+            // Prevent back button
+            history.pushState(null, null, location.href);
+            window.onpopstate = function () {
+                history.go(1);
+            };
+        </script>
+    </body>
+    </html>
+    <?php
     exit;
 } else {
     // Log Error or handle gracefully
