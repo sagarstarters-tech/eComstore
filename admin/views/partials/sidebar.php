@@ -59,6 +59,15 @@ function admin_group_is_active(array $item): bool
     $current_page = basename($_SERVER['PHP_SELF']);
     return in_array($current_page, $item['pages'] ?? [], true);
 }
+
+// Fetch Pending Orders Count for Notifications
+$pending_orders_count = 0;
+if (isset($conn)) {
+    $po_res = $conn->query("SELECT COUNT(*) as c FROM orders WHERE status = 'pending'");
+    if ($po_res) {
+        $pending_orders_count = (int)$po_res->fetch_assoc()['c'];
+    }
+}
 ?>
 <div class="list-group list-group-flush mt-3 pb-5">
 
@@ -89,6 +98,9 @@ function admin_group_is_active(array $item): bool
            aria-expanded="<?php echo $group_active ? 'true' : 'false'; ?>">
             <i class="<?php echo $icon_full; ?>"></i>
             <span><?php echo $item['label']; ?></span>
+            <?php if ($item['label'] === 'Orders' && $pending_orders_count > 0): ?>
+                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.65rem; padding: 0.35em 0.65em;"><?php echo $pending_orders_count; ?></span>
+            <?php endif; ?>
             <i class="fas fa-chevron-down ms-auto" style="font-size:0.75rem;"></i>
         </a>
 
@@ -140,6 +152,9 @@ function admin_group_is_active(array $item): bool
                            class="list-group-item list-group-item-action <?php echo $child_active ? 'active' : ''; ?>">
                             <?php if ($child_icon): ?><i class="<?php echo $child_icon; ?>"></i><?php endif; ?>
                             <span><?php echo $child['label']; ?></span>
+                            <?php if ($child['label'] === 'Pending' && $pending_orders_count > 0): ?>
+                                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em;"><?php echo $pending_orders_count; ?></span>
+                            <?php endif; ?>
                         </a>
                     </li>
                 <?php endif; ?>
