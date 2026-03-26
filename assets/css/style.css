@@ -365,3 +365,22 @@ body.dark-mode-active .category-link.active,
     background-color: rgba(255, 255, 255, 0.05);
     color: #ffffff !important;
 }
+
+/* --- Footer Link Hover Effect --- */
+.footer-link {
+    transition: all 0.3s ease;
+    display: inline-block;
+    color: inherit !important;
+    text-decoration: none !important;
+}
+
+.footer-link:hover {
+    color: var(--primary, #0d6efd) !important;
+    transform: translateX(5px);
+    padding-left: 2px;
+}
+
+body.dark-mode-active .footer-link:hover,
+[data-mdb-theme="dark"] .footer-link:hover {
+    color: #ffffff !important;
+}

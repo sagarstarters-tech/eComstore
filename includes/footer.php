@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
                         if (!empty($f1_url) && $f1_url[0] === '/' && !preg_match('#^https?://#i', $f1_url)) {
                             $f1_url = rtrim(SITE_URL, '/') . $f1_url;
                         }
-                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f1_url).'" class="text-decoration-none">'.htmlspecialchars($f1['name']).'</a></li>';
+                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f1_url).'" class="footer-link">'.htmlspecialchars($f1['name']).'</a></li>';
                     }
                 } else {
                     echo '<li class="text-muted small">No links added.</li>';
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
                         if (!empty($f2_url) && $f2_url[0] === '/' && !preg_match('#^https?://#i', $f2_url)) {
                             $f2_url = rtrim(SITE_URL, '/') . $f2_url;
                         }
-                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f2_url).'" class="text-decoration-none">'.htmlspecialchars($f2['name']).'</a></li>';
+                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f2_url).'" class="footer-link">'.htmlspecialchars($f2['name']).'</a></li>';
                     }
                 } else {
                     echo '<li class="text-muted small">No links added.</li>';
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
                         if (!empty($f3_url) && $f3_url[0] === '/' && !preg_match('#^https?://#i', $f3_url)) {
                             $f3_url = rtrim(SITE_URL, '/') . $f3_url;
                         }
-                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f3_url).'" class="text-decoration-none">'.htmlspecialchars($f3['name']).'</a></li>';
+                        echo '<li class="mb-2"><a href="'.htmlspecialchars($f3_url).'" class="footer-link">'.htmlspecialchars($f3['name']).'</a></li>';
                     }
                 } else {
                     echo '<li class="text-muted small">No links added.</li>';
