@@ -124,14 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
     </div>
     
     <!-- Footer Bottom -->
-    <div class="row border-top pt-4 align-items-center" style="border-color: #dbdbdb !important;">
-        <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+    <div class="row border-top pt-4" style="border-color: #dbdbdb !important;">
+        <div class="col-12 text-center">
             <span class="small">
                 <?php echo $global_settings['footer_copyright'] ?? ("Copyright &copy; " . date("Y") . " Sagar Starter's. Powered by Sagar Starter's."); ?>
             </span>
-        </div>
-        <div class="col-md-6 text-center text-md-end">
-            <!-- Social icons relocated to column 1 -->
         </div>
     </div>
   </div>
