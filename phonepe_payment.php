@@ -8,12 +8,14 @@ $saltKey = trim($global_settings['phonepe_salt_key'] ?? '');
 $saltIndex = trim($global_settings['phonepe_salt_index'] ?? '1');
 $mode = $global_settings['phonepe_mode'] ?? 'sandbox';
 
-// Endpoint
+// Endpoint & Environment Config
 if ($mode === 'live') {
     $apiUrl = 'https://api.phonepe.com/apis/hermes/pg/v1/pay';
+    $checksumPath = '/pg/v1/pay';
 } else {
-    // For Sandbox/UAT
+    // Standard PhonePe Sandbox/UAT Endpoint
     $apiUrl = 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay';
+    $checksumPath = '/pg/v1/pay';
 }
 
 // Generate unique Merchant Transaction ID
@@ -57,7 +59,7 @@ $jsonPayload = json_encode($payload);
 $base64Payload = base64_encode($jsonPayload);
 
 // Generate Checksum (X-VERIFY)
-$verifyHeader = hash('sha256', $base64Payload . "/pg/v1/pay" . $saltKey) . "###" . $saltIndex;
+$verifyHeader = hash('sha256', $base64Payload . $checksumPath . $saltKey) . "###" . $saltIndex;
 
 // Insert pending transaction into phonepe_transactions
 $stmt_trans = $conn->prepare("INSERT INTO phonepe_transactions (order_id, transaction_id, amount, status) VALUES (?, ?, ?, 'PENDING')");
@@ -179,6 +181,12 @@ if (isset($res['success']) && $res['success'] && isset($res['data']['instrumentR
     echo "<i class='fas fa-exclamation-triangle fa-4x text-danger mb-4'></i>";
     echo "<h2 class='fw-bold mb-3'>Payment Initialization Failed</h2>";
     echo "<p class='text-muted mb-4'>" . htmlspecialchars($errorMsg) . "</p>";
+
+    if ($mode === 'sandbox' && strpos($errorMsg, 'Key not found') !== false) {
+        echo "<div class='alert alert-warning mb-4 py-2 small text-start mx-auto' style='max-width: 500px;'>";
+        echo "<strong><i class='fas fa-info-circle me-1'></i> Tip for Admin:</strong> Your Merchant ID (<code>$merchantId</code>) seems to be a Live ID, but the mode is set to <strong>'Sandbox / Test'</strong>. PhonePe Sandbox usually requires the standard test ID: <code>PGTESTPAYUAT</code>. Please switch to <strong>'Live'</strong> mode in Admin Settings to use your own credentials.";
+        echo "</div>";
+    }
     echo "<a href='checkout.php' class='btn btn-primary btn-custom px-5'>Go back to checkout</a>";
     echo "</div>";
     echo "</div>";
