@@ -68,6 +68,15 @@ if (isset($conn)) {
         $pending_orders_count = (int)$po_res->fetch_assoc()['c'];
     }
 }
+
+// Fetch New Customers Count (Joined in last 24 hours)
+$new_customers_count = 0;
+if (isset($conn)) {
+    $nc_res = $conn->query("SELECT COUNT(*) as c FROM users WHERE role = 'user' AND created_at >= NOW() - INTERVAL 1 DAY");
+    if ($nc_res) {
+        $new_customers_count = (int)$nc_res->fetch_assoc()['c'];
+    }
+}
 ?>
 <div class="list-group list-group-flush mt-3 pb-5">
 
@@ -100,6 +109,9 @@ if (isset($conn)) {
             <span><?php echo $item['label']; ?></span>
             <?php if ($item['label'] === 'Orders' && $pending_orders_count > 0): ?>
                 <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.65rem; padding: 0.35em 0.65em;"><?php echo $pending_orders_count; ?></span>
+            <?php endif; ?>
+            <?php if ($item['label'] === 'Customers' && $new_customers_count > 0): ?>
+                <span class="badge rounded-pill bg-info ms-2" style="font-size: 0.65rem; padding: 0.35em 0.65em;"><?php echo $new_customers_count; ?></span>
             <?php endif; ?>
             <i class="fas fa-chevron-down ms-auto" style="font-size:0.75rem;"></i>
         </a>
@@ -154,6 +166,9 @@ if (isset($conn)) {
                             <span><?php echo $child['label']; ?></span>
                             <?php if ($child['label'] === 'Pending' && $pending_orders_count > 0): ?>
                                 <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em;"><?php echo $pending_orders_count; ?></span>
+                            <?php endif; ?>
+                            <?php if ($child['label'] === 'All Customers' && $new_customers_count > 0): ?>
+                                <span class="badge rounded-pill bg-info ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em; text-white"><?php echo $new_customers_count; ?></span>
                             <?php endif; ?>
                         </a>
                     </li>
