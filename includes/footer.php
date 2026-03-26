@@ -37,7 +37,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
                 <p class="small mb-3"><?php echo nl2br(htmlspecialchars($global_settings['footer_text'])); ?></p>
             <?php endif; ?>
             
-
+            <div class="d-flex mt-4">
+                <?php if(!empty($global_settings['social_facebook'])): ?>
+                    <a href="<?php echo htmlspecialchars($global_settings['social_facebook']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-facebook-f"></i></a>
+                <?php endif; ?>
+                
+                <?php if(!empty($global_settings['social_twitter'])): ?>
+                    <a href="<?php echo htmlspecialchars($global_settings['social_twitter']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-twitter"></i></a>
+                <?php endif; ?>
+                
+                <?php if(!empty($global_settings['social_instagram'])): ?>
+                    <a href="<?php echo htmlspecialchars($global_settings['social_instagram']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-instagram"></i></a>
+                <?php endif; ?>
+                
+                <?php if(!empty($global_settings['social_linkedin'])): ?>
+                    <a href="<?php echo htmlspecialchars($global_settings['social_linkedin']); ?>" target="_blank" class="text-dark"><i class="fab fa-linkedin-in"></i></a>
+                <?php endif; ?>
+            </div>
         </div>
         
         <!-- Column 2: Footer 1 / For Him -->
@@ -115,21 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['subscribe_email'])) {
             </span>
         </div>
         <div class="col-md-6 text-center text-md-end">
-            <?php if(!empty($global_settings['social_facebook'])): ?>
-                <a href="<?php echo htmlspecialchars($global_settings['social_facebook']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-facebook-f"></i></a>
-            <?php endif; ?>
-            
-            <?php if(!empty($global_settings['social_twitter'])): ?>
-                <a href="<?php echo htmlspecialchars($global_settings['social_twitter']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-twitter"></i></a>
-            <?php endif; ?>
-            
-            <?php if(!empty($global_settings['social_instagram'])): ?>
-                <a href="<?php echo htmlspecialchars($global_settings['social_instagram']); ?>" target="_blank" class="text-dark me-3"><i class="fab fa-instagram"></i></a>
-            <?php endif; ?>
-            
-            <?php if(!empty($global_settings['social_linkedin'])): ?>
-                <a href="<?php echo htmlspecialchars($global_settings['social_linkedin']); ?>" target="_blank" class="text-dark"><i class="fab fa-linkedin-in"></i></a>
-            <?php endif; ?>
+            <!-- Social icons relocated to column 1 -->
         </div>
     </div>
   </div>
