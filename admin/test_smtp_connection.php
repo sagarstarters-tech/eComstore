@@ -38,8 +38,9 @@ if ($provider === 'env') {
             $enc_pass = $q->fetch_assoc()['setting_value'];
             if (!empty($enc_pass)) {
                 $encryption_key = defined('ENCRYPTION_KEY') ? ENCRYPTION_KEY : 'default_fallback_secret_key_123!';
-                if (strpos($enc_pass, '::') !== false) {
-                    list($encrypted_data, $iv) = explode('::', base64_decode($enc_pass), 2);
+                $decoded = base64_decode($enc_pass, true);
+                if ($decoded !== false && strpos($decoded, '::') !== false) {
+                    list($encrypted_data, $iv) = explode('::', $decoded, 2);
                     $pass = openssl_decrypt($encrypted_data, 'aes-256-cbc', $encryption_key, 0, $iv);
                 } else {
                     $pass = $enc_pass;

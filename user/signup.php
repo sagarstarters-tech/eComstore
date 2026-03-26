@@ -55,6 +55,12 @@
                                 <input type="text" name="country" class="form-control" required>
                             </div>
                         </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="agreeTerms" name="agree_terms" required>
+                            <label class="form-check-label small text-muted" for="agreeTerms">
+                                I agree to the <a href="../page.php?slug=terms-conditions" class="text-success text-decoration-none">Terms of Service</a> and <a href="../page.php?slug=privacy-policy" class="text-success text-decoration-none">Privacy Policy</a>
+                            </label>
+                        </div>
                         <button type="submit" class="btn btn-primary btn-custom w-100 mt-3">Create Account</button>
                     </form>
 
