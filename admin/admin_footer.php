@@ -25,67 +25,72 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarCollapseBtn = document.getElementById('sidebarCollapseTrigger');
         const sidebar = document.querySelector('.admin-sidebar');
         const backdrop = document.getElementById('sidebarBackdrop');
-        const body = document.body;
+        const sidebarLinks = document.querySelectorAll('.admin-sidebar .list-group-item[href]');
         
-        // Initial state from localStorage for Desktop
-        if (window.innerWidth >= 992) {
-            const isCollapsed = localStorage.getItem('adminSidebarCollapsed') === 'true';
-            if (isCollapsed) {
-                body.classList.add('sidebar-collapsed');
-            }
-        }
-
-        if (sidebar && backdrop) {
-            // Desktop Collapse Handler
-            if (sidebarCollapseBtn) {
-                sidebarCollapseBtn.addEventListener('click', function() {
-                    if (window.innerWidth >= 992) {
-                        body.classList.toggle('sidebar-collapsed');
-                        localStorage.setItem('adminSidebarCollapsed', body.classList.contains('sidebar-collapsed'));
-                    } else {
-                        // On mobile, this button acts as another close trigger
-                        closeSidebar();
-                    }
-                });
-            }
-
-            // Mobile Drawer Logic
+        if (sidebarToggle && sidebar && backdrop) {
             function openSidebar() {
                 sidebar.classList.add('show');
                 backdrop.classList.add('show');
-                body.classList.add('sidebar-open');
-                body.style.overflow = 'hidden';
+                document.body.classList.add('sidebar-open');
+                document.body.style.overflow = 'hidden';
             }
             
             function closeSidebar() {
                 sidebar.classList.remove('show');
                 backdrop.classList.remove('show');
-                body.classList.remove('sidebar-open');
-                body.style.overflow = '';
+                document.body.classList.remove('sidebar-open');
+                document.body.style.overflow = '';
             }
             
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    if (sidebar.classList.contains('show')) {
-                        closeSidebar();
-                    } else {
-                        openSidebar();
-                    }
-                });
+            function toggleSidebar() {
+                if (sidebar.classList.contains('show')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
             }
+            
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSidebar();
+            });
             
             backdrop.addEventListener('click', closeSidebar);
             
-            // Auto close links on mobile
+            // Handle sidebar items on mobile
             document.querySelectorAll('.admin-sidebar .list-group-item').forEach(item => {
                 item.addEventListener('click', function(e) {
-                    if (this.hasAttribute('data-mdb-toggle') || this.getAttribute('href') === '#') return;
-                    if (window.innerWidth < 992) setTimeout(closeSidebar, 200);
+                    // If it's a collapse toggle (dropdown), don't close the sidebar
+                    if (this.hasAttribute('data-mdb-toggle') || this.getAttribute('href') === '#') {
+                        e.stopPropagation();
+                        return;
+                    }
+                    
+                    // If it's a real link and we are on mobile, close the sidebar after a delay
+                    if (window.innerWidth < 992 && this.hasAttribute('href')) {
+                        setTimeout(closeSidebar, 200);
+                    }
                 });
+            });
+
+            // Prevent dropdown clicks from closing sidebar
+            document.querySelectorAll('.dropdown-toggle, .dropdown-menu').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth < 992 && 
+                    sidebar.classList.contains('show') && 
+                    !sidebar.contains(e.target) && 
+                    !sidebarToggle.contains(e.target)) {
+                    closeSidebar();
+                }
             });
         }
     });
