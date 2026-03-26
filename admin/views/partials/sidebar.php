@@ -60,14 +60,20 @@ function admin_group_is_active(array $item): bool
     return in_array($current_page, $item['pages'] ?? [], true);
 }
 
-// Fetch Pending Orders Count for Notifications
-$pending_orders_count = 0;
+// Fetch Orders Count for Notifications (Pending & Processing)
+$pending_count = 0;
+$processing_count = 0;
 if (isset($conn)) {
-    $po_res = $conn->query("SELECT COUNT(*) as c FROM orders WHERE status = 'pending'");
+    // Single query for both or separate for clarity
+    $po_res = $conn->query("SELECT status, COUNT(*) as c FROM orders WHERE status IN ('pending', 'processing') GROUP BY status");
     if ($po_res) {
-        $pending_orders_count = (int)$po_res->fetch_assoc()['c'];
+        while ($row = $po_res->fetch_assoc()) {
+            if ($row['status'] === 'pending') $pending_count = (int)$row['c'];
+            if ($row['status'] === 'processing') $processing_count = (int)$row['c'];
+        }
     }
 }
+$orders_total_notif = $pending_count + $processing_count;
 
 // Fetch New Customers Count (Joined in last 24 hours)
 $new_customers_count = 0;
@@ -107,8 +113,8 @@ if (isset($conn)) {
            aria-expanded="<?php echo $group_active ? 'true' : 'false'; ?>">
             <i class="<?php echo $icon_full; ?>"></i>
             <span><?php echo $item['label']; ?></span>
-            <?php if ($item['label'] === 'Orders' && $pending_orders_count > 0): ?>
-                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.65rem; padding: 0.35em 0.65em;"><?php echo $pending_orders_count; ?></span>
+            <?php if ($item['label'] === 'Orders' && $orders_total_notif > 0): ?>
+                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.65rem; padding: 0.35em 0.65em;"><?php echo $orders_total_notif; ?></span>
             <?php endif; ?>
             <?php if ($item['label'] === 'Customers' && $new_customers_count > 0): ?>
                 <span class="badge rounded-pill bg-info ms-2" style="font-size: 0.65rem; padding: 0.35em 0.65em;"><?php echo $new_customers_count; ?></span>
@@ -164,8 +170,11 @@ if (isset($conn)) {
                            class="list-group-item list-group-item-action <?php echo $child_active ? 'active' : ''; ?>">
                             <?php if ($child_icon): ?><i class="<?php echo $child_icon; ?>"></i><?php endif; ?>
                             <span><?php echo $child['label']; ?></span>
-                            <?php if ($child['label'] === 'Pending' && $pending_orders_count > 0): ?>
-                                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em;"><?php echo $pending_orders_count; ?></span>
+                            <?php if ($child['label'] === 'Pending' && $pending_count > 0): ?>
+                                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em;"><?php echo $pending_count; ?></span>
+                            <?php endif; ?>
+                            <?php if ($child['label'] === 'Processing' && $processing_count > 0): ?>
+                                <span class="badge rounded-pill bg-warning text-dark ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em;"><?php echo $processing_count; ?></span>
                             <?php endif; ?>
                             <?php if ($child['label'] === 'All Customers' && $new_customers_count > 0): ?>
                                 <span class="badge rounded-pill bg-info ms-2" style="font-size: 0.6rem; padding: 0.25em 0.5em; text-white"><?php echo $new_customers_count; ?></span>
