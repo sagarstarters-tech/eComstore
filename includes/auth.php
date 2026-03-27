@@ -31,13 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $country = $conn->real_escape_string($_POST['country'] ?? '');
         $zip_code = $conn->real_escape_string($_POST['zip_code'] ?? '');
         
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
-        $stmt->bind_param("s", $email);
+        $stmt = $conn->prepare("SELECT id FROM users WHERE email=? OR phone=?");
+        $stmt->bind_param("ss", $email, $phone);
         $stmt->execute();
         $check = $stmt->get_result();
         
         if ($check->num_rows > 0) {
-            $_SESSION['error'] = "Email already exists!";
+            $_SESSION['error'] = "This email or mobile number already exists!";
+            $_SESSION['error_popup'] = "This email or mobile number already exists!";
             $stmt->close();
             header("Location: ../user/signup.php");
             exit;

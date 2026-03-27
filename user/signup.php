@@ -91,4 +91,12 @@
         </div>
     </div>
 </div>
+
+<?php if (isset($_SESSION['error_popup'])): ?>
+<script>
+    alert("<?php echo $_SESSION['error_popup']; ?>");
+</script>
+<?php unset($_SESSION['error_popup']); ?>
+<?php endif; ?>
+
 <?php include '../includes/footer.php'; ?>
