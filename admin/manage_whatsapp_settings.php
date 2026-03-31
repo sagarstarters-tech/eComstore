@@ -5,6 +5,7 @@ require_once 'admin_header.php';
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget_enabled TINYINT(1) NOT NULL DEFAULT 1");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget_number VARCHAR(20) NOT NULL DEFAULT ''");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget_message VARCHAR(255) NOT NULL DEFAULT 'Hello, I have a question about your products.'");
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS phone_number_id VARCHAR(50) NOT NULL DEFAULT ''");
 
 // Fetch current settings
 $settings_query = "SELECT * FROM whatsapp_settings WHERE id = 1";
@@ -22,6 +23,7 @@ $success_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_settings') {
     $sender_number = $conn->real_escape_string($_POST['sender_number']);
     $api_token = $conn->real_escape_string($_POST['api_token']);
+    $phone_number_id = $conn->real_escape_string($_POST['phone_number_id'] ?? '');
     $sending_mode = $conn->real_escape_string($_POST['sending_mode']);
     $message_template = $conn->real_escape_string($_POST['message_template']);
     $is_enabled = isset($_POST['is_enabled']) ? 1 : 0;
@@ -37,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         api_token = '$api_token',
         sending_mode = '$sending_mode',
         message_template = '$message_template',
+        phone_number_id = '$phone_number_id',
         chat_widget_enabled = $chat_widget_enabled,
         chat_widget_number = '$chat_widget_number',
         chat_widget_message = '$chat_widget_message'
@@ -94,16 +97,20 @@ $logs = $conn->query($logs_query);
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-md-6 text-start">
+                        <div class="col-md-4 text-start">
                             <label class="form-label fw-bold d-block">Sender Number</label>
                             <?php echo render_phone_input('sender_number', $settings['sender_number'], true); ?>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4 text-start">
+                            <label class="form-label fw-bold d-block">Phone Number ID (Meta Graph)</label>
+                            <input type="text" name="phone_number_id" class="form-control bg-light" placeholder="E.g. 1045612345678" value="<?php echo htmlspecialchars($settings['phone_number_id'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-bold">Business API Token <small class="text-muted">(Optional)</small></label>
                             <input type="password" name="api_token" class="form-control bg-light" placeholder="EAAI..." value="<?php echo htmlspecialchars($settings['api_token']); ?>">
                             <div class="form-check mt-1">
                                 <input class="form-check-input show-password-toggle" type="checkbox" id="showPwWhatsapp">
-                                <label class="form-check-label small text-muted" for="showPwWhatsapp">Show password</label>
+                                <label class="form-check-label small text-muted" for="showPwWhatsapp">Show</label>
                             </div>
                         </div>
                     </div>

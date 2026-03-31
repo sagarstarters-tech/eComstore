@@ -254,12 +254,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (mode === 'web') {
                     const waLink = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
                     window.open(waLink, '_blank');
+                    whatsappModalInstance.hide();
                 } else if (mode === 'api') {
-                    // MOCK API IMPLEMENTATION
-                    // In a production environment with a valid token, you would formulate a fetch POST request to Meta's graph API here.
-                    alert("Mock API Request Triggered Successfully. In production, this would fire via curl/fetch to graph.facebook.com with the configured Access Token.");
+                    alert("Message Sent Successfully via Meta API.");
+                    whatsappModalInstance.hide();
+                    location.reload(); // Refresh to show updated logs
                 }
-                whatsappModalInstance.hide();
             } else {
                 alert("Error logging the message: " + data.error);
             }
