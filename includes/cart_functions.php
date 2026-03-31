@@ -1,6 +1,10 @@
 <?php
 function sync_cart_to_db($conn) {
     if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
+        try {
+            $conn->query("ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `cart_data` TEXT DEFAULT NULL AFTER `password`");
+        } catch (\Throwable $e) { }
+
         $user_id = intval($_SESSION['user_id']);
         $cart_json = isset($_SESSION['cart']) ? json_encode($_SESSION['cart']) : json_encode([]);
         $stmt = $conn->prepare("UPDATE users SET cart_data = ? WHERE id = ?");
@@ -13,6 +17,10 @@ function sync_cart_to_db($conn) {
 }
 
 function load_cart_from_db($conn, $user_id) {
+    try {
+        $conn->query("ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `cart_data` TEXT DEFAULT NULL AFTER `password`");
+    } catch (\Throwable $e) { }
+
     $stmt = $conn->prepare("SELECT cart_data FROM users WHERE id = ?");
     if ($stmt) {
         $stmt->bind_param("i", $user_id);
