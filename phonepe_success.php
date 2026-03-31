@@ -108,6 +108,10 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
             // Activate Digital Downloads
             require_once 'includes/digital_product_functions.php';
             activateDigitalDownloads($conn, $order_id);
+
+            // WhatsApp Hook
+            require_once 'includes/whatsapp_functions.php';
+            sendAutomatedWhatsApp($conn, $order_id);
         }
     }
     // PhonePe returns amount in paisa

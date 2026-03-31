@@ -50,6 +50,9 @@ class OrderController extends BaseController
         if ($q && $q->num_rows > 0) {
             $user = $q->fetch_assoc();
             sendOrderStatusEmail($this->conn, $id, $user['email'], $user['name'], $status);
+            // WhatsApp Hook
+            require_once __DIR__ . '/../../../includes/whatsapp_functions.php';
+            sendAutomatedWhatsApp($this->conn, $id);
         }
 
         $this->flash('success', "Order #$id status updated to $status.");

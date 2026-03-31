@@ -1,6 +1,7 @@
 <?php
 include 'admin_header.php';
 require_once '../includes/mail_functions.php';
+require_once '../includes/whatsapp_functions.php';
 
 // Include Tracking Module logic
 require_once '../tracking_module_src/src/Config/TrackingConfig.php';
@@ -24,6 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($q && $q->num_rows > 0) {
             $user = $q->fetch_assoc();
             sendOrderStatusEmail($conn, $id, $user['email'], $user['name'], $status);
+            // Trigger automated WhatsApp notification
+            sendAutomatedWhatsApp($conn, $id);
         }
         
     } elseif ($action === 'delete') {
