@@ -8,42 +8,52 @@ $token_valid = false;
 $email = '';
 
 if (isset($_GET['token'])) {
-    $token = $conn->real_escape_string($_GET['token']);
+    $token = $_GET['token'];
     
     // Check if token exists and is not expired
-    $query = "SELECT email, id FROM users WHERE reset_token='$token' AND reset_token_expiry > NOW()";
-    $result = $conn->query($query);
+    $stmt = $conn->prepare("SELECT email, id FROM users WHERE reset_token=? AND reset_token_expiry > NOW()");
+    $stmt->bind_param("s", $token);
+    $stmt->execute();
+    $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
         $token_valid = true;
         $user = $result->fetch_assoc();
         $email = $user['email'];
         $user_id = $user['id'];
+        $stmt->close();
         
         // Process form submission
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $new_password = $_POST['password'];
-            $confirm_password = $_POST['confirm_password'];
-            
-            if (strlen($new_password) < 6) {
-                $error = "Password must be at least 6 characters long.";
-            } elseif ($new_password !== $confirm_password) {
-                $error = "Passwords do not match.";
+            if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+                $error = "Security check failed. Please submit the form again.";
             } else {
-                $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
+                $new_password = $_POST['password'];
+                $confirm_password = $_POST['confirm_password'];
                 
-                // Update password and clear reset token
-                $update_sql = "UPDATE users SET password='$hashed_password', reset_token=NULL, reset_token_expiry=NULL WHERE id=$user_id";
-                
-                if ($conn->query($update_sql)) {
-                    $success = "Your password has been successfully reset. You can now login.";
-                    $token_valid = false; // Hide form after success
+                if (strlen($new_password) < 8) {
+                    $error = "Password must be at least 8 characters long.";
+                } elseif ($new_password !== $confirm_password) {
+                    $error = "Passwords do not match.";
                 } else {
-                    $error = "Failed to update password. Please try again later.";
+                    $hashed_password = password_hash($new_password, PASSWORD_BCRYPT);
+                    
+                    // Update password and clear reset token
+                    $update_stmt = $conn->prepare("UPDATE users SET password=?, reset_token=NULL, reset_token_expiry=NULL WHERE id=?");
+                    $update_stmt->bind_param("si", $hashed_password, $user_id);
+                    
+                    if ($update_stmt->execute()) {
+                        $success = "Your password has been successfully reset. You can now login.";
+                        $token_valid = false; // Hide form after success
+                    } else {
+                        $error = "Failed to update password. Please try again later.";
+                    }
+                    $update_stmt->close();
                 }
             }
         }
     } else {
+        $stmt->close();
         $error = "Invalid or expired password reset link. Please request a new one.";
     }
 } else {
@@ -76,9 +86,10 @@ if (isset($_GET['token'])) {
                     <p class="text-center text-muted mb-4">Create a new password for <?php echo htmlspecialchars($email); ?></p>
                     
                     <form method="POST">
+                        <?php echo csrf_field(); ?>
                         <div class="mb-3">
                             <label class="form-label">New Password</label>
-                            <input type="password" name="password" class="form-control" required minlength="6">
+                            <input type="password" name="password" class="form-control" required minlength="8">
                             <div class="form-check mt-1">
                                 <input class="form-check-input show-password-toggle" type="checkbox" id="showPwReset1">
                                 <label class="form-check-label small text-muted" for="showPwReset1">Show password</label>
@@ -86,7 +97,7 @@ if (isset($_GET['token'])) {
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Confirm New Password</label>
-                            <input type="password" name="confirm_password" class="form-control" required minlength="6">
+                            <input type="password" name="confirm_password" class="form-control" required minlength="8">
                             <div class="form-check mt-1">
                                 <input class="form-check-input show-password-toggle" type="checkbox" id="showPwReset2">
                                 <label class="form-check-label small text-muted" for="showPwReset2">Show password</label>

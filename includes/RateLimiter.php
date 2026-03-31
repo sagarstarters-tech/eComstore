@@ -18,11 +18,11 @@ class RateLimiter {
     private int $decaySeconds;
     private string $sessionKey;
 
-    public function __construct(int $maxAttempts = 5, int $decaySeconds = 900) {
+    public function __construct(int $maxAttempts = 5, int $decaySeconds = 900, string $prefix = 'rl_') {
         $this->maxAttempts  = $maxAttempts;
         $this->decaySeconds = $decaySeconds;
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $this->sessionKey = 'rl_' . md5($ip);
+        $this->sessionKey = $prefix . md5($ip);
 
         if (session_status() === PHP_SESSION_NONE) {
             include_once __DIR__ . '/session_setup.php';

@@ -11,52 +11,75 @@
                     require_once '../includes/mail_functions.php';
 
                     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                        $email = $conn->real_escape_string($_POST['email']);
-                        $check = $conn->query("SELECT id, name FROM users WHERE email='$email'");
+                        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+                            echo '<div class="alert alert-danger">Security check failed. Please submit the form again.</div>';
+                        } else {
+                            require_once '../includes/RateLimiter.php';
+                            $limiter = new RateLimiter(3, 600, 'forgot_');
 
-                        if ($check->num_rows > 0) {
-                            $user = $check->fetch_assoc();
-                            
-                            // Generate token and expiry (1 hour)
-                            $token = bin2hex(random_bytes(32));
-                            $expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                            if ($limiter->isBlocked()) {
+                                $mins = ceil($limiter->getRemainingLockSeconds() / 60);
+                                echo "<div class='alert alert-danger'>Too many requests. Please try again in {$mins} minute(s).</div>";
+                            } else {
+                                $limiter->recordFailure(); // count all attempts toward limit
+                                $email = $_POST['email'] ?? '';
+                                
+                                $stmt = $conn->prepare("SELECT id, name FROM users WHERE email=?");
+                                $stmt->bind_param("s", $email);
+                                $stmt->execute();
+                                $check = $stmt->get_result();
 
-                            $conn->query("UPDATE users SET reset_token='$token', reset_token_expiry='$expiry' WHERE email='$email'");
+                                if ($check->num_rows > 0) {
+                                    $user = $check->fetch_assoc();
+                                    
+                                    // Generate token and expiry (1 hour)
+                                    $token = bin2hex(random_bytes(32));
+                                    $expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-                            $reset_link = "https://" . $_SERVER['HTTP_HOST'] . "/user/reset_password.php?token=" . $token;
+                                    $upd = $conn->prepare("UPDATE users SET reset_token=?, reset_token_expiry=? WHERE email=?");
+                                    $upd->bind_param("sss", $token, $expiry, $email);
+                                    $upd->execute();
+                                    $upd->close();
 
-                            try {
-                                $mail = getMailerInstance();
-                                $mail->addAddress($email, $user['name']);
-                                $mail->isHTML(true);
+                                    $base = defined('SITE_URL') && SITE_URL !== '' ? rtrim(SITE_URL, '/') : (((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']);
+                                    $reset_link = $base . "/user/reset_password.php?token=" . $token;
 
-                                // Fetch template
-                                $tpl = getEmailTemplate($conn, 'password_reset');
-                                if ($tpl) {
-                                    $vars = ['name' => $user['name'], 'reset_link' => $reset_link];
-                                    $mail->Subject = parseTemplate($tpl['subject'], $vars);
-                                    $mail->Body = parseTemplate($tpl['body'], $vars);
-                                } else {
-                                    $mail->Subject = 'Password Reset Request';
-                                    $mail->Body = "
-                                        <h3>Password Reset</h3>
-                                        <p>Hi {$user['name']},</p>
-                                        <p>You requested a password reset. Click the link below to set a new password. This link will expire in 1 hour.</p>
-                                        <p><a href='$reset_link'>$reset_link</a></p>
-                                        <p>If you didn't request this, you can safely ignore this email.</p>
-                                    ";
+                                    try {
+                                        $mail = getMailerInstance();
+                                        $mail->addAddress($email, $user['name']);
+                                        $mail->isHTML(true);
+
+                                        // Fetch template
+                                        $tpl = getEmailTemplate($conn, 'password_reset');
+                                        if ($tpl) {
+                                            $vars = ['name' => $user['name'], 'reset_link' => $reset_link];
+                                            $mail->Subject = parseTemplate($tpl['subject'], $vars);
+                                            $mail->Body = parseTemplate($tpl['body'], $vars);
+                                        } else {
+                                            $mail->Subject = 'Password Reset Request';
+                                            $mail->Body = "
+                                                <h3>Password Reset</h3>
+                                                <p>Hi {$user['name']},</p>
+                                                <p>You requested a password reset. Click the link below to set a new password. This link will expire in 1 hour.</p>
+                                                <p><a href='$reset_link'>$reset_link</a></p>
+                                                <p>If you didn't request this, you can safely ignore this email.</p>
+                                            ";
+                                        }
+                                        $mail->send();
+                                    } catch (Exception $e) {
+                                        // Silent fail
+                                    }
                                 }
-                                $mail->send();
-                            } catch (Exception $e) {
-                                // Silent fail as per standard security practices for forgot password, but optional error log
+                                $stmt->close();
+                                
+                                // Always show the same success message to prevent user enumeration
+                                echo '<div class="alert alert-success">If that email is in our database, we have sent a reset link to it.</div>';
                             }
                         }
-                        
-                        // Always show the same success message to prevent user enumeration
-                        echo '<div class="alert alert-success">If that email is in our database, we have sent a reset link to it.</div>';
                     }
                     ?>
                     <form method="POST">
+                        <?php echo csrf_field(); ?>
                         <div class="mb-3">
                             <input type="email" name="email" class="form-control" placeholder="Email Address" required>
                         </div>

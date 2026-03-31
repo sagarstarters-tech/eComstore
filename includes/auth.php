@@ -20,6 +20,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'signup') {
+        require_once __DIR__ . '/RateLimiter.php';
+        $limiter = new RateLimiter(3, 600, 'signup_');
+        
+        if ($limiter->isBlocked()) {
+            $mins = ceil($limiter->getRemainingLockSeconds() / 60);
+            $_SESSION['error'] = "Too many signup attempts. Please try again in {$mins} minute(s).";
+            header("Location: ../user/signup.php");
+            exit;
+        }
+
+        if (empty($_POST['agree_terms'])) {
+            $_SESSION['error'] = "You must agree to the Terms of Service and Privacy Policy.";
+            $limiter->recordFailure();
+            header("Location: ../user/signup.php");
+            exit;
+        }
+
+        if (strlen($_POST['password'] ?? '') < 8) {
+            $_SESSION['error'] = "Password must be at least 8 characters long.";
+            $limiter->recordFailure();
+            header("Location: ../user/signup.php");
+            exit;
+        }
+
         $name = $conn->real_escape_string($_POST['name']);
         $email = $conn->real_escape_string($_POST['email']);
         $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
@@ -40,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "This email or mobile number already exists!";
             $_SESSION['error_popup'] = "This email or mobile number already exists!";
             $stmt->close();
+            $limiter->recordFailure();
             header("Location: ../user/signup.php");
             exit;
         }
@@ -95,9 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['success'] = "Registration successful! (Developer Note: SMTP email failed. Ensure `mail_config.php` has valid Gmail credentials!) For local testing verify manually: <a href='$verify_link'>$verify_link</a>. Mailer Error: {$mail->ErrorInfo}";
             }
             
+            $limiter->reset();
             header("Location: ../user/login.php");
         } else {
             $_SESSION['error'] = "Something went wrong!";
+            $limiter->recordFailure();
             header("Location: ../user/signup.php");
         }
         exit;
@@ -134,6 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $limiter->reset();
+                session_regenerate_id(true); // Prevent Session Fixation
+                
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['name'] = $user['name'];
                 $_SESSION['role'] = $user['role'];
@@ -158,6 +187,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Handle GET actions like logout
 if (isset($_GET['action'])) {
     if ($_GET['action'] === 'logout') {
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
         session_destroy();
         header("Location: ../user/login.php");
         exit;
