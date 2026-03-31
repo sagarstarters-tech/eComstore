@@ -30,18 +30,52 @@ $order_id_q = $conn->query("SELECT id FROM orders ORDER BY created_at DESC LIMIT
 if ($order_id_q && $order_id_q->num_rows > 0) {
     $order_id = $order_id_q->fetch_assoc()['id'];
     echo "<h4>3. Test Sending for Order #$order_id</h4>";
-    echo "Triggering sendAutomatedWhatsApp($order_id)...<br>";
     
-    $result = sendAutomatedWhatsApp($conn, $order_id);
-    
-    if ($result) {
-        echo "<span style='color:green'>SUCCESS! The message was accepted by Meta.</span><br>";
+    if (isset($_GET['test_type']) && $_GET['test_type'] == 'template') {
+        echo "Triggering Template Test (hello_world)...<br>";
+        $status = testMetaTemplate($conn, $order_id);
     } else {
-        echo "<span style='color:red'>FAILED. Check the error log below.</span><br>";
+        echo "Triggering Standard Text Test...<br>";
+        $status = sendAutomatedWhatsApp($conn, $order_id);
     }
-} else {
-    echo "<h4>3. Test Sending</h4>";
-    echo "No orders found to test with.<br>";
+    
+    if ($status) {
+        echo "<span style='color:green'>SUCCESS! Meta accepted the message.</span><br>";
+    } else {
+        echo "<span style='color:red'>FAILED. API Error.</span><br>";
+    }
+}
+
+echo "<br><a href='?test_type=text' style='padding:10px; border:1px solid #ccc; text-decoration:none;'>Run Standard Text Test</a> ";
+echo "<a href='?test_type=template' style='padding:10px; border:1px solid #ccc; text-decoration:none;'>Run Official Template Test (hello_world)</a><br>";
+
+function testMetaTemplate($conn, $order_id) {
+    $set_q = $conn->query("SELECT api_token, phone_number_id FROM whatsapp_settings WHERE id = 1");
+    $s = $set_q->fetch_assoc();
+    $token = trim($s['api_token']);
+    $phone_id = trim($s['phone_number_id']);
+
+    $q = $conn->query("SELECT u.phone FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = $order_id");
+    $phone = preg_replace('/[^0-9]/', '', $q->fetch_assoc()['phone']);
+    if (strlen($phone) == 10) $phone = '91' . $phone;
+
+    $url = "https://graph.facebook.com/v19.0/{$phone_id}/messages";
+    $payload = [
+        "messaging_product" => "whatsapp",
+        "to" => $phone,
+        "type" => "template",
+        "template" => [ "name" => "hello_world", "language" => [ "code" => "en_US" ] ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $token, 'Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $res = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return ($code == 200);
 }
 
 // 4. View Logs
