@@ -142,22 +142,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // 2. Insert order items and update stock
         $stmt2 = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price, shipping_cost) VALUES (?, ?, ?, ?, ?)");
+        if (!$stmt2) throw new Exception("Failed to prepare order_items insert: " . $conn->error);
         $stock_stmt = $conn->prepare("UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ? AND stock >= ?");
+        if (!$stock_stmt) throw new Exception("Failed to prepare stock update: " . $conn->error);
         
         foreach ($cart_items as $item) {
             $item_shipping = ($item['product_type'] === 'physical') ? (float)$item['shipping_cost'] : 0.00;
-            $qty = (int)$item['qty'];
+            $qty  = (int)$item['qty'];
             $p_id = (int)$item['id'];
+            $price = (float)$item['price'];
             
-            $stmt2->bind_param("iiidd", $order_id, $p_id, $qty, $item['price'], $item_shipping);
-            if (!$stmt2->execute()) throw new Exception("Failed to insert order item.");
+            $stmt2->bind_param("iiidd", $order_id, $p_id, $qty, $price, $item_shipping);
+            if (!$stmt2->execute()) throw new Exception("Failed to insert order item: " . $stmt2->error);
 
-            // Update stock with safety check (ensure stock hasn't dropped since start of request)
+            // Update stock with safety check
             $stock_stmt->bind_param("iii", $qty, $p_id, $qty);
             $stock_stmt->execute();
             if ($stock_stmt->affected_rows === 0) {
                 if ($item['product_type'] === 'physical') {
-                    throw new Exception("Product '{$item['name']}' is no longer in stock.");
+                    throw new Exception("Product '{$item['name']}' is out of stock.");
                 }
             }
         }
@@ -166,10 +169,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If we reach here, commit everything
         $conn->commit();
-    } catch (Exception $e) {
+    } catch (\Throwable $e) {
         $conn->rollback();
-        $_SESSION['error'] = "Checkout failed: " . $e->getMessage();
-        header("Location: cart.php");
+        // Log detailed error for debugging
+        $log_dir = __DIR__ . '/logs';
+        if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+        $log_msg = '[' . date('Y-m-d H:i:s') . '] Checkout error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL;
+        file_put_contents($log_dir . '/checkout_errors.log', $log_msg, FILE_APPEND);
+        $_SESSION['checkout_error'] = "Order could not be processed: " . $e->getMessage();
+        header("Location: checkout.php");
         exit;
     }
     
@@ -210,6 +218,13 @@ include 'includes/header.php';
 
 <div class="container mt-5 pt-3 mb-5">
     <h1 class="montserrat fw-bold primary-blue mb-4">Checkout</h1>
+    
+    <?php if(isset($_SESSION['checkout_error'])): ?>
+        <div class="alert alert-danger py-3 mb-4 rounded-3 border-0 bg-danger bg-opacity-10 text-danger fw-bold">
+            <i class="fas fa-exclamation-triangle me-2"></i> <?php echo htmlspecialchars($_SESSION['checkout_error']); ?>
+        </div>
+        <?php unset($_SESSION['checkout_error']); ?>
+    <?php endif; ?>
     
     <?php if(isset($success)): ?>
         <div class="alert alert-success text-center py-4 bg-light border-success">
