@@ -112,10 +112,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 1. Insert order
         // Try with partial COD columns first; fall back to basic INSERT if they don't exist
         if ($is_partial_cod) {
-            $stmt = $conn->prepare(
-                "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
-            );
+            $stmt = null;
+            try {
+                $stmt = $conn->prepare(
+                    "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"
+                );
+            } catch (\Throwable $e) {
+                // Ignore exception, $stmt remains null to trigger fallback
+            }
+
             if ($stmt) {
                 $stmt->bind_param("idssdds", $user_id, $grand_total, $payment_method, $status, $advance_amount, $remaining_amount, $payment_mode);
             } else {
