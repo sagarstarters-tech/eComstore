@@ -43,6 +43,12 @@ function sendAutomatedWhatsApp($conn, $order_id) {
 
     // Meta API requires strict country code numeric formatting. E.g. India +91
     $clean_number = preg_replace('/[^0-9]/', '', $customerPhone);
+    
+    // Remove leading zero if it exists (common for local numbers)
+    if (strpos($clean_number, '0') === 0) {
+        $clean_number = ltrim($clean_number, '0');
+    }
+
     // Best effort validation for India prefix missing
     if (strlen($clean_number) == 10) {
         $clean_number = '91' . $clean_number;
@@ -105,6 +111,18 @@ function sendAutomatedWhatsApp($conn, $order_id) {
         $status_msg = 'Failed API (Auto): Connection timeout';
     }
 
+    // Ensure logs table exists
+    $conn->query("CREATE TABLE IF NOT EXISTS `whatsapp_logs` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `order_id` int(11) NOT NULL,
+        `customer_number` varchar(50) NOT NULL,
+        `message` text NOT NULL,
+        `sending_mode` varchar(20) NOT NULL,
+        `status` varchar(255) NOT NULL,
+        `sent_at` timestamp NOT NULL DEFAULT current_timestamp(),
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
     // Insert into logs
     $stmt = $conn->prepare(
         "INSERT INTO whatsapp_logs (order_id, customer_number, message, sending_mode, status)
@@ -114,6 +132,20 @@ function sendAutomatedWhatsApp($conn, $order_id) {
         $stmt->bind_param("isss", $order_id, $customerPhone, $message, $status_msg);
         $stmt->execute();
         $stmt->close();
+    } else {
+        // Log query failure
+        $log_dir = __DIR__ . '/../logs'; // root/logs
+        if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+        file_put_contents($log_dir . '/whatsapp_errors.log', '[' . date('Y-m-d H:i:s') . '] DB Error: ' . $conn->error . PHP_EOL, FILE_APPEND);
+    }
+    
+    // Detailed API Logging if failed
+    if (strpos($status_msg, 'Failed') !== false) {
+        $log_dir = __DIR__ . '/../logs';
+        if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+        $log_entry = '[' . date('Y-m-d H:i:s') . "] Order #$order_id Error: $status_msg" . PHP_EOL;
+        $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
+        file_put_contents($log_dir . '/whatsapp_errors.log', $log_entry, FILE_APPEND);
     }
 
     return ($http_code == 200);
