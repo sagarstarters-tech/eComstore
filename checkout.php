@@ -109,14 +109,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $payment_mode = 'COD_PARTIAL';
         }
 
-        // 1. Insert order (with advance/remaining columns)
-        // Bind: i=user_id, d=grand_total, s=payment_method, s=status, d=advance_amount, d=remaining_amount, s=payment_mode
-        $stmt = $conn->prepare(
-            "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->bind_param("idssdds", $user_id, $grand_total, $payment_method, $status, $advance_amount, $remaining_amount, $payment_mode);
-        $stmt->execute();
+        // 1. Insert order
+        // Try with partial COD columns first; fall back to basic INSERT if they don't exist
+        if ($is_partial_cod) {
+            $stmt = $conn->prepare(
+                "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            if ($stmt) {
+                $stmt->bind_param("idssdds", $user_id, $grand_total, $payment_method, $status, $advance_amount, $remaining_amount, $payment_mode);
+            } else {
+                // Partial COD columns may not exist — fall back to basic insert and disable partial COD for this order
+                $is_partial_cod = false;
+                $stmt = $conn->prepare(
+                    "INSERT INTO orders (user_id, total_amount, payment_method, status)
+                     VALUES (?, ?, ?, ?)"
+                );
+                if (!$stmt) throw new Exception("Database error: " . $conn->error);
+                $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
+            }
+        } else {
+            $stmt = $conn->prepare(
+                "INSERT INTO orders (user_id, total_amount, payment_method, status)
+                 VALUES (?, ?, ?, ?)"
+            );
+            if (!$stmt) throw new Exception("Database error: " . $conn->error);
+            $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
+        }
+        if (!$stmt->execute()) throw new Exception("Failed to create order: " . $stmt->error);
         $order_id = $stmt->insert_id;
         $stmt->close();
         
