@@ -70,12 +70,19 @@ function testMetaTemplate($conn, $order_id) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $token, 'Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return ($code == 200);
+    
+    if ($code == 200) return true;
+    
+    echo "<pre style='color:red; background:#fff1f0; padding:10px; border:1px solid red;'>" . htmlspecialchars($res) . "</pre>";
+    return false;
+}
+
+// 4. Update sendAutomatedWhatsApp to echo error if diagnostic
+if (isset($_GET['diag_verbose'])) {
+    // We already have results in diag.
 }
 
 // 4. View Logs
