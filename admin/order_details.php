@@ -191,8 +191,39 @@ $stageIndex = $info['progress_stage_index'];
             <hr>
             <div class="mb-3">
                 <p class="text-muted mb-0 small uppercase fw-bold">Payment Method</p>
+                <?php if (isset($order['payment_mode']) && $order['payment_mode'] === 'COD_PARTIAL'): ?>
+                <h6 class="fw-bold">COD (Partial Advance)</h6>
+                <?php else: ?>
                 <h6 class="fw-bold"><?php echo strtoupper($order['payment_method']); ?></h6>
+                <?php endif; ?>
             </div>
+
+            <?php if (isset($order['payment_mode']) && $order['payment_mode'] === 'COD_PARTIAL'): ?>
+            <!-- ── Partial COD Breakdown ──────────────────────────────── -->
+            <div class="border rounded-3 p-3 mb-3" style="background:#f0fff4;">
+                <p class="text-muted mb-2 small fw-bold text-uppercase">Payment Breakdown</p>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small"><i class="fas fa-check-circle text-success me-1"></i>Advance Paid (Online)</span>
+                    <span class="fw-bold text-success">
+                        <?php echo $global_currency; ?><?php echo number_format((float)($order['advance_amount'] ?? 0), 2); ?>
+                        <i class="fas fa-check-circle text-success ms-1"></i>
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small"><i class="fas fa-truck text-warning me-1"></i>Remaining COD (On Delivery)</span>
+                    <span class="fw-bold text-warning">
+                        <?php echo $global_currency; ?><?php echo number_format((float)($order['remaining_amount'] ?? 0), 2); ?>
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small fw-bold">Status</span>
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-clock me-1"></i>Partial Paid &mdash; COD Pending
+                    </span>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="mb-0">
                 <p class="text-muted mb-0 small uppercase fw-bold">Order Date</p>
                 <h6 class="fw-bold"><?php echo date('M d, Y H:i', strtotime($order['created_at'])); ?></h6>

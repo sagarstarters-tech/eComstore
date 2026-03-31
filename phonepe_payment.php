@@ -22,7 +22,10 @@ if ($mode === 'live') {
 $merchantTransactionId = 'ORDER_' . $order_id . '_' . time();
 
 // Amount in Paisa (Multiply by 100)
-$amountInPaisa = (int)round($grand_total * 100);
+// $payment_amount can be set by the caller (e.g. checkout.php for Partial COD advance).
+// Falls back to $grand_total for standard PhonePe payments.
+$charge_amount = isset($payment_amount) ? (float)$payment_amount : (float)$grand_total;
+$amountInPaisa = (int)round($charge_amount * 100);
 
 // Host URL for redirects and webhooks
 $siteUrl = defined('SITE_URL') ? rtrim(SITE_URL, '/') : '';

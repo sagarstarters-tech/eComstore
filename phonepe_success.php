@@ -62,33 +62,46 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
     if ($order_id > 0) {
         // Clear cart now that we have a confirmed order
         if (isset($_SESSION['cart'])) { unset($_SESSION['cart']); }
+        // Clear partial COD session flag
+        if (isset($_SESSION['cod_partial_order'])) { unset($_SESSION['cod_partial_order']); }
 
-        // Manually update if the status is not SUCCESS in DB yet
+        // Manually update transaction status if not done by webhook yet
         $conn->query("UPDATE phonepe_transactions SET status = 'SUCCESS' WHERE transaction_id = '$txn_val' AND status != 'SUCCESS'");
-        $conn->query("UPDATE orders SET status = 'processing', payment_method = 'phonepe' WHERE id = $order_id AND status = 'pending'");
-        
-        // ── Order Confirmation ──────────────────────────────────────
+
+        // ── Fetch order (to check payment_mode) ──────────────────────
         require_once 'includes/mail_functions.php';
         $ord_q = $conn->query("SELECT * FROM orders WHERE id=$order_id");
-        if($ord_q && $ord_q->num_rows > 0) {
-            $ord = $ord_q->fetch_assoc();
-            $user_id = $ord['user_id'];
+        $ord = ($ord_q && $ord_q->num_rows > 0) ? $ord_q->fetch_assoc() : [];
+        $is_partial_cod_order = isset($ord['payment_mode']) && $ord['payment_mode'] === 'COD_PARTIAL';
+
+        if ($is_partial_cod_order) {
+            // Partial COD: advance paid. Keep status=pending, payment_method=cod.
+            $conn->query("UPDATE orders SET status='pending', payment_method='cod' WHERE id=$order_id AND status='pending'");
+        } else {
+            // Standard PhonePe full payment
+            $conn->query("UPDATE orders SET status='processing', payment_method='phonepe' WHERE id=$order_id AND status='pending'");
+        }
+        
+        // ── Order Confirmation Email ──────────────────────────────────
+        if (!empty($ord)) {
+            $user_id   = $ord['user_id'];
             $grand_total = $ord['total_amount'];
     
             $usr_q = $conn->query("SELECT * FROM users WHERE id=$user_id");
-            $usr = $usr_q->fetch_assoc();
+            $usr = $usr_q ? $usr_q->fetch_assoc() : [];
             
             $cart_items = [];
             $item_q = $conn->query("SELECT oi.*, p.name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = $order_id");
             while($itm = $item_q->fetch_assoc()) {
                 $cart_items[] = [
-                    'name' => $itm['name'],
-                    'qty' => $itm['quantity'],
+                    'name'  => $itm['name'],
+                    'qty'   => $itm['quantity'],
                     'price' => $itm['price']
                 ];
             }
-            
-            sendOrderConfirmationEmail($conn, $order_id, $usr['email'] ?? '', $usr['name'] ?? 'Customer', $cart_items, $grand_total, $global_currency ?? '₹', 'phonepe');
+
+            $email_method = $is_partial_cod_order ? 'cod' : 'phonepe';
+            sendOrderConfirmationEmail($conn, $order_id, $usr['email'] ?? '', $usr['name'] ?? 'Customer', $cart_items, $grand_total, $global_currency ?? '₹', $email_method);
             
             // Activate Digital Downloads
             require_once 'includes/digital_product_functions.php';
@@ -98,12 +111,26 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
     // PhonePe returns amount in paisa
     $displayAmount = number_format($amount / 100, 2);
 
+    // Re-fetch order details if not already fetched above
+    if (empty($ord)) {
+        $ord_q2 = $conn->query("SELECT * FROM orders WHERE id=$order_id");
+        $ord = ($ord_q2 && $ord_q2->num_rows > 0) ? $ord_q2->fetch_assoc() : [];
+    }
+    $is_partial_cod_order = isset($ord['payment_mode']) && $ord['payment_mode'] === 'COD_PARTIAL';
+    $remaining_cod = isset($ord['remaining_amount']) ? (float)$ord['remaining_amount'] : 0;
+    $currency_sym = $global_settings['currency_symbol'] ?? '₹';
+
     ?>
     <div class="container mt-5 pt-5 mb-5 text-center px-3">
     <div class="card shadow-sm border-0 p-4 p-md-5 mx-auto" style="max-width: 600px;">
             <i class="fas fa-check-circle fa-5x text-success mb-4"></i>
+            <?php if ($is_partial_cod_order): ?>
+            <h2 class="fw-bold mb-2">Advance Payment Successful!</h2>
+            <p class="text-muted fs-6 mb-4">Your advance payment was received. Your COD order is now confirmed.</p>
+            <?php else: ?>
             <h2 class="fw-bold mb-3">Payment Successful</h2>
             <p class="text-muted fs-5 mb-4">Your payment has been processed successfully.</p>
+            <?php endif; ?>
             
             <div class="bg-light p-4 rounded text-start mb-4 border">
                 <div class="d-flex justify-content-between mb-2">
@@ -114,11 +141,26 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
                     <span class="text-secondary fw-bold">Transaction ID:</span>
                     <span class="fw-bold text-dark"><?php echo htmlspecialchars($merchantTransactionId); ?></span>
                 </div>
-                <div class="d-flex justify-content-between">
-                    <span class="text-secondary fw-bold">Amount Paid:</span>
-                    <span class="fw-bold text-dark"><?php echo htmlspecialchars($global_settings['currency_symbol'] ?? '₹'); ?><?php echo $displayAmount; ?></span>
+                <div class="d-flex justify-content-between <?php echo $is_partial_cod_order ? 'mb-2' : ''; ?>">
+                    <span class="text-secondary fw-bold">Advance Paid:</span>
+                    <span class="fw-bold text-dark"><?php echo htmlspecialchars($currency_sym); ?><?php echo $displayAmount; ?></span>
                 </div>
+                <?php if ($is_partial_cod_order && $remaining_cod > 0): ?>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary fw-bold">Remaining COD:</span>
+                    <span class="fw-bold text-success"><?php echo htmlspecialchars($currency_sym); ?><?php echo number_format($remaining_cod, 2); ?></span>
+                </div>
+                <?php endif; ?>
             </div>
+
+            <?php if ($is_partial_cod_order && $remaining_cod > 0): ?>
+            <div class="alert alert-info py-3 text-start mb-4 small border-0" style="background:#e8f4ff;">
+                <i class="fas fa-truck me-2 text-primary"></i>
+                <strong>COD Order Confirmed.</strong> Please pay the remaining
+                <strong><?php echo htmlspecialchars($currency_sym); ?><?php echo number_format($remaining_cod, 2); ?></strong>
+                in cash when your order is delivered.
+            </div>
+            <?php endif; ?>
             
             <a href="user/orders.php" class="btn btn-primary btn-lg btn-custom px-5">View My Orders</a>
         </div>

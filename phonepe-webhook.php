@@ -74,41 +74,48 @@ $conn->query("UPDATE phonepe_transactions SET
 $order_id = $txn['order_id'];
 
 if ($finalStatus === 'SUCCESS') {
-    // Update order status to processing
-    $conn->query("UPDATE orders SET status = 'processing', payment_method = 'phonepe' WHERE id = $order_id");
-
-    // Fetch order details for email
+    // Fetch order to check payment_mode
     $ord_q = $conn->query("SELECT * FROM orders WHERE id=$order_id");
-    if($ord_q->num_rows > 0) {
-        $ord = $ord_q->fetch_assoc();
-        $user_id = $ord['user_id'];
+    $ord = ($ord_q && $ord_q->num_rows > 0) ? $ord_q->fetch_assoc() : [];
+    $is_partial_cod = isset($ord['payment_mode']) && $ord['payment_mode'] === 'COD_PARTIAL';
+
+    if ($is_partial_cod) {
+        // Partial COD: advance paid. Keep as pending COD (delivery will collect remainder).
+        $conn->query("UPDATE orders SET status='pending', payment_method='cod' WHERE id=$order_id");
+    } else {
+        // Standard PhonePe: mark as processing
+        $conn->query("UPDATE orders SET status='processing', payment_method='phonepe' WHERE id=$order_id");
+    }
+
+    if (!empty($ord)) {
+        $user_id    = $ord['user_id'];
         $grand_total = $ord['total_amount'];
 
         $usr_q = $conn->query("SELECT * FROM users WHERE id=$user_id");
-        $usr = $usr_q->fetch_assoc();
+        $usr = $usr_q ? $usr_q->fetch_assoc() : [];
         
         // Fetch order items
         $cart_items = [];
         $item_q = $conn->query("SELECT oi.*, p.name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = $order_id");
         while($itm = $item_q->fetch_assoc()) {
             $cart_items[] = [
-                'name' => $itm['name'],
-                'qty' => $itm['quantity'],
+                'name'  => $itm['name'],
+                'qty'   => $itm['quantity'],
                 'price' => $itm['price']
             ];
         }
         
         // Send Confirmation Email
-        sendOrderConfirmationEmail($conn, $order_id, $usr['email'], $usr['name'], $cart_items, $grand_total, $global_currency ?? '₹', 'phonepe');
+        $email_method = $is_partial_cod ? 'cod' : 'phonepe';
+        sendOrderConfirmationEmail($conn, $order_id, $usr['email'] ?? '', $usr['name'] ?? 'Customer', $cart_items, $grand_total, $global_currency ?? '₹', $email_method);
 
         // Activate Digital Downloads
         require_once 'includes/digital_product_functions.php';
         activateDigitalDownloads($conn, $order_id);
     }
 } else if ($finalStatus === 'FAILED') {
-
-    // We simply mark the order as cancelled
-    $conn->query("UPDATE orders SET status = 'cancelled' WHERE id = $order_id");
+    // Mark the order as cancelled
+    $conn->query("UPDATE orders SET status='cancelled' WHERE id=$order_id");
 }
 
 echo "OK";

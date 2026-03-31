@@ -75,6 +75,21 @@ if (isset($is_all_digital) && $is_all_digital) {
     $grand_total = $shippingCalc['grand_total'];
 }
 
+// ── Partial COD Config ───────────────────────────────────────────────────────
+$cod_enabled_global     = isset($global_settings['cod_enabled']) && $global_settings['cod_enabled'] == '1';
+$cod_advance_enabled    = isset($global_settings['cod_advance_enabled']) && $global_settings['cod_advance_enabled'] == '1';
+$cod_advance_pct        = max(1, min(99, (float)($global_settings['cod_advance_percentage'] ?? 30)));
+$cod_advance_min_order  = (float)($global_settings['cod_advance_min_order'] ?? 0);
+
+$is_partial_cod = $cod_enabled_global
+               && $cod_advance_enabled
+               && $cod_allowed_for_all
+               && ($cod_advance_min_order == 0 || $grand_total >= $cod_advance_min_order);
+
+$advance_amount   = $is_partial_cod ? round($grand_total * $cod_advance_pct / 100, 2) : 0;
+$remaining_amount = $is_partial_cod ? round($grand_total - $advance_amount, 2) : 0;
+// ────────────────────────────────────────────────────────────────────────────
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         $_SESSION['error'] = "Security check failed. Please submit the form again.";
@@ -88,9 +103,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = 'pending';
         $payment_method = $_POST['payment_method'] ?? 'cod';
         
-        // 1. Insert order
-        $stmt = $conn->prepare("INSERT INTO orders (user_id, total_amount, payment_method, status) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
+        // Determine payment_mode for Partial COD
+        $payment_mode = null;
+        if ($payment_method === 'cod' && $is_partial_cod) {
+            $payment_mode = 'COD_PARTIAL';
+        }
+
+        // 1. Insert order (with advance/remaining columns)
+        // Bind: i=user_id, d=grand_total, s=payment_method, s=status, d=advance_amount, d=remaining_amount, s=payment_mode
+        $stmt = $conn->prepare(
+            "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param("idssdds", $user_id, $grand_total, $payment_method, $status, $advance_amount, $remaining_amount, $payment_mode);
         $stmt->execute();
         $order_id = $stmt->insert_id;
         $stmt->close();
@@ -119,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt2->close();
         $stock_stmt->close();
         
-        // If we reach here, commit everthing
+        // If we reach here, commit everything
         $conn->commit();
     } catch (Exception $e) {
         $conn->rollback();
@@ -129,21 +154,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if ($payment_method === 'cod') {
-        unset($_SESSION['cart']);
-        $customer_email = $user_data['email'];
-        $customer_name = $user_data['name'];
-        sendOrderConfirmationEmail($conn, $order_id, $customer_email, $customer_name, $cart_items, $grand_total, $global_currency, $payment_method);
-        
-        require_once 'tracking_module_src/src/Config/TrackingConfig.php';
-        require_once 'tracking_module_src/src/Repositories/TrackingRepository.php';
-        $trackingConfig = new \TrackingModule\Config\TrackingConfig();
-        $trackingRepo = new \TrackingModule\Repositories\TrackingRepository($trackingConfig->getConnection());
-        $trackingRepo->logStatusChange($order_id, 'pending', 'Order placed successfully.', 'system');
+        if ($is_partial_cod) {
+            // ── Partial COD: Redirect to PhonePe for advance amount ──────
+            $_SESSION['cod_partial_order'] = true;
+            $payment_amount = $advance_amount; // override amount for phonepe_payment.php
+            include 'phonepe_payment.php';
+            exit;
+        } else {
+            // ── Standard COD ─────────────────────────────────────────────
+            unset($_SESSION['cart']);
+            $customer_email = $user_data['email'];
+            $customer_name = $user_data['name'];
+            sendOrderConfirmationEmail($conn, $order_id, $customer_email, $customer_name, $cart_items, $grand_total, $global_currency, $payment_method);
+            
+            require_once 'tracking_module_src/src/Config/TrackingConfig.php';
+            require_once 'tracking_module_src/src/Repositories/TrackingRepository.php';
+            $trackingConfig = new \TrackingModule\Config\TrackingConfig();
+            $trackingRepo = new \TrackingModule\Repositories\TrackingRepository($trackingConfig->getConnection());
+            $trackingRepo->logStatusChange($order_id, 'pending', 'Order placed successfully.', 'system');
 
-        require_once 'includes/digital_product_functions.php';
-        activateDigitalDownloads($conn, $order_id);
+            require_once 'includes/digital_product_functions.php';
+            activateDigitalDownloads($conn, $order_id);
 
-        $success = "Order placed successfully! Order ID: #$order_id";
+            $success = "Order placed successfully! Order ID: #$order_id";
+        }
     } elseif ($payment_method === 'phonepe') {
         include 'phonepe_payment.php';
         exit;
@@ -227,7 +261,7 @@ include 'includes/header.php';
                     <?php if ($phonepe_enabled): ?>
                     <div class="mb-3">
                         <div class="form-check border rounded p-3 bg-light">
-                            <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_phonepe" value="phonepe" required <?php echo !$cod_enabled ? 'checked' : ''; ?>>
+                            <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_phonepe" value="phonepe" required <?php echo !$cod_enabled ? 'checked' : ''; ?> onchange="updatePaymentUI()">
                             <label class="form-check-label ms-2 fw-bold" for="pay_phonepe">
                                 Pay Online via PhonePe
                             </label>
@@ -238,15 +272,57 @@ include 'includes/header.php';
 
                     <?php if ($cod_enabled): ?>
                         <?php if ($cod_allowed_for_all): ?>
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <div class="form-check border rounded p-3 bg-light">
-                                <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_cod" value="cod" required <?php echo !$phonepe_enabled ? 'checked' : ''; ?>>
+                                <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_cod" value="cod" required <?php echo !$phonepe_enabled ? 'checked' : ''; ?> onchange="updatePaymentUI()">
                                 <label class="form-check-label ms-2 fw-bold" for="pay_cod">
                                     Cash On Delivery (COD)
+                                    <?php if ($is_partial_cod): ?>
+                                        <span class="badge bg-warning text-dark ms-2 small fw-semibold">Advance Required</span>
+                                    <?php endif; ?>
                                 </label>
                                 <small class="d-block text-success mt-1 ms-2"><i class="fas fa-check-circle me-1"></i> Pay with cash upon delivery.</small>
                             </div>
                         </div>
+
+                        <?php if ($is_partial_cod): ?>
+                        <!-- ── Partial COD Info Box ──────────────────────────────── -->
+                        <div id="partial_cod_info" class="mb-4" style="display:none;">
+                            <div class="border border-warning rounded-3 p-4" style="background: linear-gradient(135deg, #fffbf0 0%, #fff8e1 100%);">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-mobile-alt fa-lg text-warning me-2"></i>
+                                    <h6 class="fw-bold mb-0 text-dark">Advance Payment Required</h6>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                            <span class="text-muted small fw-semibold">Order Total</span>
+                                            <span class="fw-bold"><?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                            <span class="text-muted small fw-semibold">
+                                                <i class="fas fa-mobile-alt me-1 text-primary"></i>
+                                                Advance via PhonePe (<?php echo $cod_advance_pct; ?>%)
+                                            </span>
+                                            <span class="fw-bold text-primary"><?php echo $global_currency; ?><?php echo number_format($advance_amount, 2); ?></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-muted small fw-semibold">
+                                                <i class="fas fa-truck me-1 text-success"></i>
+                                                Remaining COD (on delivery)
+                                            </span>
+                                            <span class="fw-bold text-success"><?php echo $global_currency; ?><?php echo number_format($remaining_amount, 2); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning py-2 mb-0 small fw-semibold border-0 bg-warning bg-opacity-25 rounded-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    You need to pay <strong><?php echo $global_currency; ?><?php echo number_format($advance_amount, 2); ?></strong> in advance via PhonePe to confirm your COD order. The remaining <strong><?php echo $global_currency; ?><?php echo number_format($remaining_amount, 2); ?></strong> will be collected at delivery.
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <?php else: ?>
                         <div class="mb-4">
                             <div class="alert alert-warning py-3 border-0 border-start border-warning border-4">
@@ -261,7 +337,7 @@ include 'includes/header.php';
                     <?php if (!$phonepe_enabled && !$cod_enabled): ?>
                         <div class="alert alert-danger px-4 py-3 border-0 border-start border-danger border-4 fw-bold">No payment methods are currently available. Please contact support.</div>
                     <?php else: ?>
-                        <button type="submit" class="btn btn-primary btn-lg btn-custom w-100 mt-4 py-3">Place Order</button>
+                        <button type="submit" id="placeOrderBtn" class="btn btn-primary btn-lg btn-custom w-100 mt-4 py-3">Place Order</button>
                     <?php endif; ?>
                 </form>
             </div>
@@ -302,6 +378,20 @@ include 'includes/header.php';
                         <span>Total Amount</span>
                         <strong class="primary-blue"><?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?></strong>
                     </div>
+
+                    <?php if ($is_partial_cod): ?>
+                    <!-- Partial COD summary lines (always visible in sidebar) -->
+                    <div id="partial_cod_sidebar" class="mt-3 pt-3 border-top" style="display:none;">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted"><i class="fas fa-mobile-alt me-1"></i>Advance (PhonePe)</span>
+                            <span class="fw-bold text-primary"><?php echo $global_currency; ?><?php echo number_format($advance_amount, 2); ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted"><i class="fas fa-truck me-1"></i>Pay on Delivery</span>
+                            <span class="fw-bold text-success"><?php echo $global_currency; ?><?php echo number_format($remaining_amount, 2); ?></span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -309,6 +399,32 @@ include 'includes/header.php';
     <?php endif; ?>
 </div>
 
+<?php if ($is_partial_cod): ?>
+<script>
+function updatePaymentUI() {
+    var codRadio    = document.getElementById('pay_cod');
+    var partialInfo = document.getElementById('partial_cod_info');
+    var sidebarInfo = document.getElementById('partial_cod_sidebar');
+    var placeBtn    = document.getElementById('placeOrderBtn');
 
+    if (!codRadio) return;
+
+    var isCodSelected = codRadio.checked;
+
+    if (partialInfo) partialInfo.style.display = isCodSelected ? '' : 'none';
+    if (sidebarInfo) sidebarInfo.style.display = isCodSelected ? '' : 'none';
+    if (placeBtn) {
+        placeBtn.innerHTML = isCodSelected
+            ? '<i class="fas fa-mobile-alt me-2"></i>Pay Advance &amp; Confirm COD Order'
+            : '<i class="fas fa-lock me-2"></i>Place Order';
+    }
+}
+
+// Run on page load to set initial state
+document.addEventListener('DOMContentLoaded', function() {
+    updatePaymentUI();
+});
+</script>
+<?php endif; ?>
 
 <?php include 'includes/footer.php'; ?>

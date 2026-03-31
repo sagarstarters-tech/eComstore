@@ -154,6 +154,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $cod_enabled = $conn->real_escape_string($_POST['cod_enabled']);
             $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_enabled', '$cod_enabled') ON DUPLICATE KEY UPDATE setting_value='$cod_enabled'");
         }
+
+        // ── COD Advance Payment Settings ────────────────────────────
+        $cod_advance_enabled = isset($_POST['cod_advance_enabled']) ? '1' : '0';
+        $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_advance_enabled', '$cod_advance_enabled') ON DUPLICATE KEY UPDATE setting_value='$cod_advance_enabled'");
+
+        if (isset($_POST['cod_advance_percentage'])) {
+            $cod_adv_pct = max(1, min(99, (int)$_POST['cod_advance_percentage']));
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_advance_percentage', '$cod_adv_pct') ON DUPLICATE KEY UPDATE setting_value='$cod_adv_pct'");
+        }
+        if (isset($_POST['cod_advance_min_order'])) {
+            $cod_adv_min = max(0, (float)$_POST['cod_advance_min_order']);
+            $cod_adv_min = $conn->real_escape_string($cod_adv_min);
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_advance_min_order', '$cod_adv_min') ON DUPLICATE KEY UPDATE setting_value='$cod_adv_min'");
+        }
+        // ────────────────────────────────────────────────────────────
         
         // PhonePe Settings
         if (isset($_POST['phonepe_enabled'])) {
@@ -602,12 +617,82 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold">Cash On Delivery (COD) Status</label>
-                        <select name="cod_enabled" class="form-select">
+                        <select name="cod_enabled" id="cod_enabled_select" class="form-select" onchange="toggleCodAdvanceSection()">
                             <option value="1" <?php echo (isset($current_settings['cod_enabled']) && $current_settings['cod_enabled'] == '1') ? 'selected' : ''; ?>>Enabled</option>
                             <option value="0" <?php echo (!isset($current_settings['cod_enabled']) || $current_settings['cod_enabled'] == '0') ? 'selected' : ''; ?>>Disabled</option>
                         </select>
-                        <small class="text-muted">If enabled, COD will be available for orders over ₹1000.</small>
+                        <small class="text-muted">If enabled, COD will be available for customers at checkout.</small>
                     </div>
+
+                    <?php
+                    /* ── COD Advance Sub-section ───────────────────────────────── */
+                    $cod_adv_enabled = ($current_settings['cod_advance_enabled'] ?? '0') === '1';
+                    $cod_adv_pct     = $current_settings['cod_advance_percentage'] ?? '30';
+                    $cod_adv_min     = $current_settings['cod_advance_min_order'] ?? '0';
+                    $cod_is_on       = ($current_settings['cod_enabled'] ?? '0') === '1';
+                    ?>
+                    <div id="cod_advance_section" class="border rounded-3 p-3 mb-3 bg-light" style="<?php echo $cod_is_on ? '' : 'display:none;'; ?>">
+                        <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-percentage me-2"></i>COD Advance Payment (Partial COD)</h6>
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            When enabled, customers must pay a percentage online via PhonePe before the COD order is confirmed.
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                    name="cod_advance_enabled" id="cod_advance_enabled"
+                                    <?php echo $cod_adv_enabled ? 'checked' : ''; ?>
+                                    onchange="toggleAdvanceFields()">
+                                <label class="form-check-label ms-2 fs-6 fw-bold" for="cod_advance_enabled">
+                                    Enable COD Advance Payment
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">Customer pays advance online; rest is paid at delivery.</small>
+                        </div>
+
+                        <div id="cod_advance_fields" style="<?php echo $cod_adv_enabled ? '' : 'display:none;'; ?>">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Advance Percentage <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="number" name="cod_advance_percentage" class="form-control"
+                                            value="<?php echo htmlspecialchars($cod_adv_pct); ?>"
+                                            min="1" max="99" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <small class="text-muted">% of order total charged as advance online.</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Minimum Order Value</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><?php echo htmlspecialchars($global_currency); ?></span>
+                                        <input type="number" name="cod_advance_min_order" class="form-control"
+                                            value="<?php echo htmlspecialchars($cod_adv_min); ?>"
+                                            min="0" step="0.01">
+                                    </div>
+                                    <small class="text-muted">0 = apply to all orders. Otherwise only applies when cart &ge; this amount.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                    function toggleCodAdvanceSection() {
+                        var codSelect = document.getElementById('cod_enabled_select');
+                        var advSection = document.getElementById('cod_advance_section');
+                        if (codSelect && advSection) {
+                            advSection.style.display = (codSelect.value === '1') ? '' : 'none';
+                        }
+                    }
+                    function toggleAdvanceFields() {
+                        var toggle = document.getElementById('cod_advance_enabled');
+                        var fields = document.getElementById('cod_advance_fields');
+                        if (toggle && fields) {
+                            fields.style.display = toggle.checked ? '' : 'none';
+                        }
+                    }
+                    </script>
 
                     <hr class="my-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
