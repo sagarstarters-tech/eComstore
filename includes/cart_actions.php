@@ -1,6 +1,7 @@
 <?php
 include_once 'session_setup.php';
 include_once 'db_connect.php';
+require_once 'cart_functions.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -38,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['cart'][$product_id] = $new_qty;
         }
         
+        sync_cart_to_db($conn);
         header("Location: ../cart.php");
         exit;
     }
@@ -53,12 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             unset($_SESSION['cart'][$product_id]);
         }
+        sync_cart_to_db($conn);
         header("Location: ../cart.php");
         exit;
     }
 
     if ($action === 'remove') {
         unset($_SESSION['cart'][$product_id]);
+        sync_cart_to_db($conn);
         header("Location: ../cart.php");
         exit;
     }

@@ -197,6 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // ── Standard COD ─────────────────────────────────────────────
             unset($_SESSION['cart']);
+            require_once 'includes/cart_functions.php';
+            sync_cart_to_db($conn);
             $customer_email = $user_data['email'];
             $customer_name = $user_data['name'];
             sendOrderConfirmationEmail($conn, $order_id, $customer_email, $customer_name, $cart_items, $grand_total, $global_currency, $payment_method);

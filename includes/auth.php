@@ -1,6 +1,7 @@
 <?php
 include_once __DIR__ . '/session_setup.php';
 include 'db_connect.php';
+require_once 'cart_functions.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -167,6 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['name'] = $user['name'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['profile_photo'] = $user['profile_photo'] ?? '';
+                
+                // Re-populate and sync cart items internally on valid login sequence
+                load_cart_from_db($conn, $user['id']);
                 
                 if ($user['role'] === 'admin') {
                     header("Location: ../admin/index.php");

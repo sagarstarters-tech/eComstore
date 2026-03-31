@@ -62,6 +62,8 @@ if (strtoupper($code) === 'PAYMENT_SUCCESS' || strtoupper($code) === 'SUCCESS') 
     if ($order_id > 0) {
         // Clear cart now that we have a confirmed order
         if (isset($_SESSION['cart'])) { unset($_SESSION['cart']); }
+        require_once 'includes/cart_functions.php';
+        sync_cart_to_db($conn);
         // Clear partial COD session flag
         if (isset($_SESSION['cod_partial_order'])) { unset($_SESSION['cod_partial_order']); }
 
