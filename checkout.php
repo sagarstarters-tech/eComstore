@@ -100,6 +100,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Start Transaction for Order Integrity
     $conn->begin_transaction();
     try {
+        $billing_name    = trim($_POST['billing_name'] ?? '');
+        $billing_address = trim($_POST['billing_address'] ?? '');
+        $billing_city    = trim($_POST['billing_city'] ?? '');
+        $billing_state   = trim($_POST['billing_state'] ?? '');
+        $billing_country = trim($_POST['billing_country'] ?? '');
+        $billing_zip     = trim($_POST['billing_zip'] ?? '');
+        $billing_phone   = trim($_POST['billing_phone'] ?? '');
+
+        // Validation for mandatory fields
+        if (empty($billing_name)) {
+            throw new Exception("Full Name is required.");
+        }
+        if (!$is_all_digital) {
+            if (empty($billing_address) || empty($billing_city) || empty($billing_state) || empty($billing_country) || empty($billing_zip)) {
+                throw new Exception("Complete address details are required for physical products.");
+            }
+        }
+        if (empty($billing_phone) || strlen(preg_replace('/[^0-9]/', '', $billing_phone)) < 10) {
+            throw new Exception("Valid Phone Number is required.");
+        }
+
+        // Update user data if changed (optional but helpful)
+        if ($billing_name !== ($user_data['name'] ?? '') || 
+            $billing_address !== ($user_data['address'] ?? '') ||
+            $billing_city !== ($user_data['city'] ?? '') ||
+            $billing_state !== ($user_data['state'] ?? '') ||
+            $billing_country !== ($user_data['country'] ?? '') ||
+            $billing_zip !== ($user_data['zip_code'] ?? '') ||
+            $billing_phone !== ($user_data['phone'] ?? '')) {
+            
+            $upd_stmt = $conn->prepare("UPDATE users SET name=?, address=?, city=?, state=?, country=?, zip_code=?, phone=? WHERE id=?");
+            $upd_stmt->bind_param("sssssssi", $billing_name, $billing_address, $billing_city, $billing_state, $billing_country, $billing_zip, $billing_phone, $user_id);
+            $upd_stmt->execute();
+            $upd_stmt->close();
+        }
+
         $status = 'pending';
         $payment_method = $_POST['payment_method'] ?? 'cod';
         
