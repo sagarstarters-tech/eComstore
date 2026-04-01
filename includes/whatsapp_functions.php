@@ -57,32 +57,78 @@ function sendAutomatedWhatsApp($conn, $order_id) {
     if (empty($clean_number)) {
         return false;
     }
-
-    // Parse Template
+    // Parse Template variables for payload and default text message
     $message = $settings['message_template'];
-    $message = str_replace('{CustomerName}', $customerName, $message);
-    $message = str_replace('{OrderID}', $order_id, $message);
-    $message = str_replace('{OrderStatus}', $orderStatus, $message);
-    $message = str_replace('{TrackingID}', $trackingID, $message);
-    $message = str_replace('{OrderAmount}', $orderAmount, $message);
-
+    $replacementValues = [
+        '{CustomerName}' => $customerName,
+        '{OrderID}'      => $order_id,
+        '{OrderStatus}'  => $orderStatus,
+        '{TrackingID}'   => $trackingID,
+        '{OrderAmount}'  => $orderAmount
+    ];
+    
+    // Create old style text message for fallback and logging
+    foreach ($replacementValues as $search => $replace) {
+        $message = str_replace($search, $replace, $message);
+    }
+    
     // Prepare Meta API Payload
     $token = trim($settings['api_token']);
     $phone_id = trim($settings['phone_number_id']);
-    
     $url = "https://graph.facebook.com/v19.0/{$phone_id}/messages";
     
-    $payload = [
-        "messaging_product" => "whatsapp",
-        "recipient_type"    => "individual",
-        "to"                => $clean_number,
-        "type"              => "text",
-        "text"              => [
-            "preview_url" => false,
-            "body"        => $message
-        ]
-    ];
-
+    // Check if user has an approved Meta Template Name configured
+    $meta_template_name = $settings['meta_template_name'] ?? '';
+    if (!empty($meta_template_name)) {
+        // Build template component list by extracting `{Variable}` tags in the EXACT order they appear in user's UI.
+        // This maps the UI variables to Meta's {{1}}, {{2}} automatically.
+        preg_match_all('/\{(CustomerName|OrderID|OrderStatus|TrackingID|OrderAmount)\}/', $settings['message_template'], $matches);
+        
+        $params = [];
+        if (!empty($matches[0])) {
+            foreach ($matches[0] as $varKey) {
+                // Limit status strings if necessary, though WhatsApp handles regular strings fine
+                $params[] = [
+                    "type" => "text",
+                    "text" => (string)$replacementValues[$varKey]
+                ];
+            }
+        }
+        
+        $payload = [
+            "messaging_product" => "whatsapp",
+            "recipient_type"    => "individual",
+            "to"                => $clean_number,
+            "type"              => "template",
+            "template"          => [
+                "name"     => trim($meta_template_name),
+                "language" => [
+                    "code" => trim($settings['meta_template_lang'] ?? 'en')
+                ]
+            ]
+        ];
+        
+        if (!empty($params)) {
+            $payload["template"]["components"] = [
+                [
+                    "type" => "body",
+                    "parameters" => $params
+                ]
+            ];
+        }
+    } else {
+        // Fallback or Web Mode Legacy Text Structure
+        $payload = [
+            "messaging_product" => "whatsapp",
+            "recipient_type"    => "individual",
+            "to"                => $clean_number,
+            "type"              => "text",
+            "text"              => [
+                "preview_url" => false,
+                "body"        => $message
+            ]
+        ];
+    }
     // Fire cURL asynchronously (wait max 2 seconds to not block user flow)
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));

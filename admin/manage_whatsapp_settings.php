@@ -6,6 +6,8 @@ $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget_number VARCHAR(20) NOT NULL DEFAULT ''");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget_message VARCHAR(255) NOT NULL DEFAULT 'Hello, I have a question about your products.'");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS phone_number_id VARCHAR(50) NOT NULL DEFAULT ''");
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_name VARCHAR(100) NOT NULL DEFAULT ''");
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_lang VARCHAR(10) NOT NULL DEFAULT 'en'");
 
 // Fetch current settings
 $settings_query = "SELECT * FROM whatsapp_settings WHERE id = 1";
@@ -32,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $chat_widget_enabled = isset($_POST['chat_widget_enabled']) ? 1 : 0;
     $chat_widget_number  = $conn->real_escape_string($_POST['chat_widget_number'] ?? '');
     $chat_widget_message = $conn->real_escape_string($_POST['chat_widget_message'] ?? 'Hello, I have a question about your products.');
+    $meta_template_name = $conn->real_escape_string($_POST['meta_template_name'] ?? '');
+    $meta_template_lang = $conn->real_escape_string($_POST['meta_template_lang'] ?? 'en');
 
     $update_query = "UPDATE whatsapp_settings SET 
         is_enabled = $is_enabled,
@@ -42,7 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         phone_number_id = '$phone_number_id',
         chat_widget_enabled = $chat_widget_enabled,
         chat_widget_number = '$chat_widget_number',
-        chat_widget_message = '$chat_widget_message'
+        chat_widget_message = '$chat_widget_message',
+        meta_template_name = '$meta_template_name',
+        meta_template_lang = '$meta_template_lang'
         WHERE id = 1";
 
     if ($conn->query($update_query)) {
@@ -112,6 +118,19 @@ $logs = $conn->query($logs_query);
                                 <input class="form-check-input show-password-toggle" type="checkbox" id="showPwWhatsapp">
                                 <label class="form-check-label small text-muted" for="showPwWhatsapp">Show</label>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Meta Template Name</label>
+                            <input type="text" name="meta_template_name" class="form-control bg-light" placeholder="e.g. order_update_v1" value="<?php echo htmlspecialchars($settings['meta_template_name'] ?? ''); ?>">
+                            <small class="text-muted">Must EXACTLY match your approved Meta template name. Leave empty to use legacy text messages.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Meta Template Language</label>
+                            <input type="text" name="meta_template_lang" class="form-control bg-light" placeholder="e.g. en or en_US" value="<?php echo htmlspecialchars($settings['meta_template_lang'] ?? 'en'); ?>">
+                            <small class="text-muted">Language code of approved Meta template.</small>
                         </div>
                     </div>
 
