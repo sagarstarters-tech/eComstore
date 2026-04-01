@@ -354,11 +354,11 @@ if ($seo_q) {
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-secondary"><?php echo htmlspecialchars($p['category_name']); ?></span>
+                                <span class="badge bg-secondary text-white" style="color: #fff !important;"><?php echo htmlspecialchars($p['category_name']); ?></span>
                                 <?php if($p['product_type'] === 'virtual'): ?>
-                                    <span class="badge bg-info ms-1">Virtual</span>
+                                    <span class="badge bg-info ms-1 text-white" style="color: #fff !important;">Virtual</span>
                                 <?php elseif($p['product_type'] === 'downloadable'): ?>
-                                    <span class="badge bg-primary ms-1">Downloadable</span>
+                                    <span class="badge bg-primary ms-1 text-white" style="color: #fff !important;">Downloadable</span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -379,7 +379,7 @@ if ($seo_q) {
                                 <?php elseif($p['stock'] > 0): ?>
                                     <span class="text-warning fw-bold"><?php echo $p['stock']; ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger">Out of Stock</span>
+                                    <span class="badge bg-danger text-white" style="color: #fff !important;">Out of Stock</span>
                                 <?php endif; ?>
                             </td>
                             <td class="pe-4">
@@ -633,7 +633,7 @@ if ($seo_q) {
                     <label class="form-label fw-bold">Product Image</label>
                     <input type="file" name="image" class="form-control" accept="image/*">
                     <div class="form-text mb-2">Leave empty to keep current image.</div>
-                    <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill"><i class="fas fa-crop-alt me-2"></i>Rec. Size: 800x800px (1:1 Ratio)</span>
+                    <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill text-white" style="color: #fff !important;"><i class="fas fa-crop-alt me-2"></i>Rec. Size: 800x800px (1:1 Ratio)</span>
                 </div>
             </div>
             <div class="row">
@@ -843,7 +843,7 @@ if ($seo_q) {
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Product Image</label>
                     <input type="file" name="image" class="form-control" accept="image/*">
-                    <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill mt-2"><i class="fas fa-crop-alt me-2"></i>Rec. Size: 800x800px (1:1 Ratio)</span>
+                    <span class="badge bg-primary px-3 py-2 shadow-sm rounded-pill mt-2 text-white" style="color: #fff !important;"><i class="fas fa-crop-alt me-2"></i>Rec. Size: 800x800px (1:1 Ratio)</span>
                 </div>
             </div>
             <div class="row">
