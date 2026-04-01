@@ -75,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
     $stmt->close();
     $_SESSION['name'] = $name;
+    if (isset($_SESSION['needs_profile_update'])) {
+        unset($_SESSION['needs_profile_update']);
+    }
     $success = "Profile updated successfully.";
     $user['name'] = $name;
     $user['phone'] = $phone;

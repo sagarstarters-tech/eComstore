@@ -217,5 +217,53 @@ if (isset($scriptService)) {
     echo $scriptService->getFooterScripts();
 }
 ?>
+<?php 
+// Show Mandatory Profile Completion Modal for Google Users
+if (isset($_SESSION['needs_profile_update']) && $_SESSION['needs_profile_update'] === true && stripos($_SERVER['PHP_SELF'], 'profile.php') === false): ?>
+<div class="modal fade" id="profileCompletionModal" tabindex="-1" aria-labelledby="profileCompletionModalLabel" aria-hidden="true" data-mdb-backdrop="static" data-mdb-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-primary text-white border-0 py-3 shadow-none">
+        <h5 class="modal-title montserrat fw-bold" id="profileCompletionModalLabel"><i class="fas fa-id-card me-2"></i>Complete Your Profile</h5>
+      </div>
+      <div class="modal-body text-center p-4 p-md-5">
+        <div class="mb-4">
+             <div class="d-inline-flex p-4 rounded-circle bg-primary bg-opacity-10 mb-3">
+                <i class="fas fa-user-edit fa-3x text-primary"></i>
+             </div>
+        </div>
+        <h3 class="fw-bold mb-3 montserrat">Almost There!</h3>
+        <p class="text-muted fs-5 mb-0">To continue shopping and ensure smooth delivery, please take a moment to complete your profile details (Phone, Address, etc.).</p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pb-5 pt-0">
+        <a href="<?php echo SITE_URL; ?>/user/profile.php" class="btn btn-primary btn-lg btn-custom px-5 py-3 fs-5 shadow-lg rounded-pill" style="min-width: 250px;">
+            <i class="fas fa-arrow-right me-2"></i>Go to Profile
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initializing the modal manually after MDB scripts are loaded
+    setTimeout(function() {
+        if (typeof mdb !== 'undefined' && mdb.Modal) {
+            const modalEl = document.getElementById('profileCompletionModal');
+            const myModal = new mdb.Modal(modalEl);
+            myModal.show();
+        }
+    }, 500);
+});
+</script>
+<style>
+#profileCompletionModal .btn-custom {
+    transition: all 0.3s ease;
+}
+#profileCompletionModal .btn-custom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+}
+</style>
+<?php endif; ?>
 </body>
 </html>

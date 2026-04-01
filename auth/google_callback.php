@@ -153,6 +153,11 @@ if ($result->num_rows > 0) {
     $_SESSION['role'] = $user['role'];
     $_SESSION['profile_photo'] = $user['profile_photo'] ?: $avatar; // Use existing photo if set, else Google avatar
     
+    // Check if profile is incomplete
+    if (empty($user['phone']) || empty($user['address'])) {
+        $_SESSION['needs_profile_update'] = true;
+    }
+    
     header("Location: ../index.php");
     exit;
 } else {
@@ -172,6 +177,7 @@ if ($result->num_rows > 0) {
         $_SESSION['name'] = $name;
         $_SESSION['role'] = 'user';
         $_SESSION['profile_photo'] = $avatar;
+        $_SESSION['needs_profile_update'] = true; // New Google users always need to complete profile
         
         $_SESSION['success'] = 'Account created successfully with Google!';
         header("Location: ../index.php");
