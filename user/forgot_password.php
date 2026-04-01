@@ -66,14 +66,14 @@
                                             ";
                                         }
                                         $mail->send();
+                                        echo '<div class="alert alert-success">Password reset link has been sent to your email address!</div>';
                                     } catch (Exception $e) {
-                                        // Silent fail
+                                        echo '<div class="alert alert-danger">Failed to send reset email. Please try again later.</div>';
                                     }
+                                } else {
+                                    echo '<div class="alert alert-danger">No account found with that email address. Please check and try again.</div>';
                                 }
                                 $stmt->close();
-                                
-                                // Always show the same success message to prevent user enumeration
-                                echo '<div class="alert alert-success">If that email is in our database, we have sent a reset link to it.</div>';
                             }
                         }
                     }
