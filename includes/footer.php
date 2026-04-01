@@ -219,7 +219,8 @@ if (isset($scriptService)) {
 ?>
 <?php 
 // Show Mandatory Profile Completion Modal for Google Users
-if (isset($_SESSION['needs_profile_update']) && $_SESSION['needs_profile_update'] === true && stripos($_SERVER['PHP_SELF'], 'profile.php') === false): ?>
+$current_page = basename($_SERVER['PHP_SELF']);
+if (isset($_SESSION['user_id']) && isset($_SESSION['needs_profile_update']) && $_SESSION['needs_profile_update'] === true && $current_page !== 'profile.php'): ?>
 <div class="modal fade" id="profileCompletionModal" tabindex="-1" aria-labelledby="profileCompletionModalLabel" aria-hidden="true" data-mdb-backdrop="static" data-mdb-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
@@ -245,14 +246,20 @@ if (isset($_SESSION['needs_profile_update']) && $_SESSION['needs_profile_update'
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initializing the modal manually after MDB scripts are loaded
-    setTimeout(function() {
+    // We attempt to initialize the modal, waiting up to 5 seconds for MDB to load
+    let attempts = 0;
+    const interval = setInterval(function() {
         if (typeof mdb !== 'undefined' && mdb.Modal) {
+            clearInterval(interval);
             const modalEl = document.getElementById('profileCompletionModal');
-            const myModal = new mdb.Modal(modalEl);
-            myModal.show();
+            if (modalEl) {
+                const myModal = new mdb.Modal(modalEl);
+                myModal.show();
+            }
         }
-    }, 500);
+        attempts++;
+        if (attempts > 50) clearInterval(interval); // Timeout after 5 seconds
+    }, 100);
 });
 </script>
 <style>
