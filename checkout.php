@@ -102,21 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $status = 'pending';
         $payment_method = $_POST['payment_method'] ?? 'cod';
-
-        $b_name = $_POST['billing_name'] ?? '';
-        $b_addr = $_POST['billing_address'] ?? '';
-        $b_city = $_POST['billing_city'] ?? '';
-        $b_state = $_POST['billing_state'] ?? '';
-        $b_country = $_POST['billing_country'] ?? '';
-        $b_zip = $_POST['billing_zip'] ?? '';
-        $b_phone = $_POST['billing_phone'] ?? '';
-
-        $upd_stmt = $conn->prepare("UPDATE users SET name=?, address=?, city=?, state=?, country=?, zip_code=?, phone=? WHERE id=?");
-        if ($upd_stmt) {
-            $upd_stmt->bind_param("sssssssi", $b_name, $b_addr, $b_city, $b_state, $b_country, $b_zip, $b_phone, $user_id);
-            $upd_stmt->execute();
-            $upd_stmt->close();
-        }
         
         // Determine payment_mode for Partial COD
         $payment_mode = null;
