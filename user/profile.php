@@ -20,7 +20,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $name = $conn->real_escape_string($_POST['name']);
-    $phone = $conn->real_escape_string($_POST['phone']);
+    
+    $phone_raw = trim($_POST['phone'] ?? '');
+    $phone = $conn->real_escape_string($phone_raw);
+    $phone_clean = str_replace([' ', '-', '(', ')', '+'], '', $phone_raw);
+    $phone_clean_sql = $conn->real_escape_string($phone_clean);
+
+    if (strlen($phone_clean) > 5) {
+        $stmt_check = $conn->prepare("SELECT id FROM users WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')=? AND id != ?");
+        $stmt_check->bind_param("si", $phone_clean_sql, $user_id);
+        $stmt_check->execute();
+        $check_res = $stmt_check->get_result();
+        if ($check_res->num_rows > 0) {
+            $_SESSION['error'] = "This phone number is already registered to another account.";
+            header("Location: profile.php");
+            exit;
+        }
+        $stmt_check->close();
+    }
+
     $address = $conn->real_escape_string($_POST['address']);
     $city = $conn->real_escape_string($_POST['city']);
     $state = $conn->real_escape_string($_POST['state']);
@@ -102,6 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card product-card">
                 <div class="card-body p-4">
                     <h4 class="montserrat primary-blue mb-4">Edit Profile</h4>
+                    <?php if(isset($_SESSION['error'])): ?>
+                        <div class="alert alert-danger"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+                    <?php endif; ?>
                     <?php if(isset($success)): ?>
                         <div class="alert alert-success"><?php echo $success; ?></div>
                     <?php endif; ?>

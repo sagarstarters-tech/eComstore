@@ -49,15 +49,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = $conn->real_escape_string($_POST['email']);
         $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
         
-        $phone = $conn->real_escape_string($_POST['phone'] ?? '');
+        $phone_raw = trim($_POST['phone'] ?? '');
+        $phone = $conn->real_escape_string($phone_raw);
+        $phone_clean = str_replace([' ', '-', '(', ')', '+'], '', $phone_raw);
+        $phone_clean_sql = $conn->real_escape_string($phone_clean);
+        
         $address = $conn->real_escape_string($_POST['address'] ?? '');
         $city = $conn->real_escape_string($_POST['city'] ?? '');
         $state = $conn->real_escape_string($_POST['state'] ?? '');
         $country = $conn->real_escape_string($_POST['country'] ?? '');
         $zip_code = $conn->real_escape_string($_POST['zip_code'] ?? '');
         
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email=? OR phone=?");
-        $stmt->bind_param("ss", $email, $phone);
+        if (strlen($phone_clean) > 5) {
+            $stmt = $conn->prepare("SELECT id FROM users WHERE email=? OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '')=?");
+            $stmt->bind_param("ss", $email, $phone_clean_sql);
+        } else {
+            $stmt = $conn->prepare("SELECT id FROM users WHERE email=?");
+            $stmt->bind_param("s", $email);
+        }
         $stmt->execute();
         $check = $stmt->get_result();
         
