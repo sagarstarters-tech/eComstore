@@ -9,11 +9,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = "Security check failed. Please submit the form again.";
     } else {
-        $name    = $conn->real_escape_string(trim($_POST['name']));
-    $email   = $conn->real_escape_string(trim($_POST['email']));
-    $phone   = isset($_POST['phone']) ? $conn->real_escape_string(trim($_POST['phone'])) : '';
-    $subject = $conn->real_escape_string(trim($_POST['subject']));
-    $message = $conn->real_escape_string(trim($_POST['message']));
+        $name    = trim($_POST['name'] ?? '');
+        $email   = trim($_POST['email'] ?? '');
+        $phone   = trim($_POST['phone'] ?? '');
+        $subject = trim($_POST['subject'] ?? '');
+        $message = trim($_POST['message'] ?? '');
+
+        if (empty($name) || empty($email) || empty($phone) || empty($subject) || empty($message)) {
+            $error = "Please fill in all required fields.";
+        } else {
+            $name    = $conn->real_escape_string($name);
+            $email   = $conn->real_escape_string($email);
+            $phone   = $conn->real_escape_string($phone);
+            $subject = $conn->real_escape_string($subject);
+            $message = $conn->real_escape_string($message);
 
     // Get Admin Email from Settings
     $admin_email = isset($global_settings['admin_email']) && !empty($global_settings['admin_email']) ?
@@ -59,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success = htmlspecialchars($global_settings['contact_success_msg'] ?? 'Thank you for reaching out! We will get back to you shortly.');
     } else {
         $error = "Sorry, there was a problem sending your message. Error Details: " . $result['error'];
+    }
     }
     }
 }
