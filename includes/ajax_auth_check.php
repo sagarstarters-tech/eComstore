@@ -22,7 +22,8 @@ $response = [
     'cart_total' => 0,
     'global_currency' => $global_currency ?? '₹',
     'site_url' => $detected_site_url,
-    'assets_url' => defined('ASSETS_URL') ? ASSETS_URL : $detected_site_url . '/assets'
+    'assets_url' => defined('ASSETS_URL') ? ASSETS_URL : $detected_site_url . '/assets',
+    'needs_profile_update' => isset($_SESSION['needs_profile_update']) ? $_SESSION['needs_profile_update'] : false
 ];
 
 // Calculate cart logic

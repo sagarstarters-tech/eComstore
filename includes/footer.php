@@ -218,9 +218,9 @@ if (isset($scriptService)) {
 }
 ?>
 <?php 
-// Show Mandatory Profile Completion Modal for Google Users
+// Show Mandatory Profile Completion Modal structure (triggered via JS/AJAX)
 $current_page = basename($_SERVER['PHP_SELF']);
-if (isset($_SESSION['user_id']) && isset($_SESSION['needs_profile_update']) && $_SESSION['needs_profile_update'] === true && $current_page !== 'profile.php'): ?>
+if ($current_page !== 'profile.php'): ?>
 <div class="modal fade" id="profileCompletionModal" tabindex="-1" aria-labelledby="profileCompletionModalLabel" aria-hidden="true" data-mdb-backdrop="static" data-mdb-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
@@ -244,24 +244,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['needs_profile_update']) && $
     </div>
   </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // We attempt to initialize the modal, waiting up to 5 seconds for MDB to load
-    let attempts = 0;
-    const interval = setInterval(function() {
-        if (typeof mdb !== 'undefined' && mdb.Modal) {
-            clearInterval(interval);
-            const modalEl = document.getElementById('profileCompletionModal');
-            if (modalEl) {
-                const myModal = new mdb.Modal(modalEl);
-                myModal.show();
-            }
-        }
-        attempts++;
-        if (attempts > 50) clearInterval(interval); // Timeout after 5 seconds
-    }, 100);
-});
-</script>
 <style>
 #profileCompletionModal .btn-custom {
     transition: all 0.3s ease;
@@ -271,6 +253,32 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
 }
 </style>
+<script>
+// Expose a global function for header.php's refreshUserState to call
+window.triggerProfileCompletionModal = function() {
+    let attempts = 0;
+    const interval = setInterval(function() {
+        if (typeof mdb !== 'undefined' && mdb.Modal) {
+            clearInterval(interval);
+            const modalEl = document.getElementById('profileCompletionModal');
+            if (modalEl) {
+                // Check if already open to prevent double initialization issues
+                if (!modalEl.classList.contains('show')) {
+                    const myModal = new mdb.Modal(modalEl);
+                    myModal.show();
+                }
+            }
+        }
+        attempts++;
+        if (attempts > 50) clearInterval(interval); // Timeout after 5 seconds
+    }, 100);
+};
+
+// Also trigger immediately if session check was true initially (in case AJAX fails)
+<?php if (isset($_SESSION['user_id']) && isset($_SESSION['needs_profile_update']) && $_SESSION['needs_profile_update'] === true): ?>
+document.addEventListener('DOMContentLoaded', window.triggerProfileCompletionModal);
+<?php endif; ?>
+</script>
 <?php endif; ?>
 </body>
 </html>

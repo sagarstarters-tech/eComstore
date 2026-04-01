@@ -508,6 +508,11 @@ function refreshUserState() {
                     new mdb.Dropdown(el);
                 });
             }
+
+            // 4. Trigger profile completion modal if needed
+            if (data.needs_profile_update && typeof window.triggerProfileCompletionModal === 'function') {
+                window.triggerProfileCompletionModal();
+            }
         })
         .catch(err => {
             console.warn('UI Sync: Falling back to server-side state.');

@@ -178,6 +178,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['profile_photo'] = $user['profile_photo'] ?? '';
                 
+                // Check if profile is incomplete
+                if (empty($user['phone']) || empty($user['address'])) {
+                    $_SESSION['needs_profile_update'] = true;
+                } else {
+                    unset($_SESSION['needs_profile_update']);
+                }
+
+                
                 // Re-populate and sync cart items internally on valid login sequence
                 load_cart_from_db($conn, $user['id']);
                 
