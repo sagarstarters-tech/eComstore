@@ -209,7 +209,7 @@ $logs = $conn->query($logs_query);
                         <button type="submit" class="btn btn-primary px-5 py-2 fw-bold rounded-3 shadow-sm me-2">
                             <i class="fas fa-save me-2"></i>Save Configuration
                         </button>
-                        <button type="button" class="btn btn-outline-warning px-4 py-2 fw-bold rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#testWhatsappModal">
+                        <button type="button" class="btn btn-outline-warning px-4 py-2 fw-bold rounded-3 shadow-sm" data-mdb-toggle="modal" data-mdb-target="#testWhatsappModal">
                             <i class="fas fa-vial me-2"></i>Test Notification
                         </button>
                     </div>
@@ -342,7 +342,7 @@ function selectTemplate(name, lang) {
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header border-0 pb-0 px-4 pt-4">
                 <h5 class="modal-title fw-bold text-primary"><i class="fas fa-paper-plane me-2"></i>Send Test Notification</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <p class="text-muted small mb-4">Testing will use a most recent order to populate variables like {CustomerName}.</p>
