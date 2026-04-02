@@ -138,3 +138,8 @@ Stack trace:
 #0 C:\xampp\htdocs\eComstore\tmp_test_insert.php(4): mysqli->query('INSERT INTO pho...')
 #1 {main}
   thrown in C:\xampp\htdocs\eComstore\tmp_test_insert.php on line 4
+[02-Apr-2026 08:02:40 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'created_at' in 'order clause' in C:\xampp\htdocs\eComstore\tmp_check_logs.php:3
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\tmp_check_logs.php(3): mysqli->query('SELECT * FROM w...')
+#1 {main}
+  thrown in C:\xampp\htdocs\eComstore\tmp_check_logs.php on line 3

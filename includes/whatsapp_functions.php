@@ -37,26 +37,17 @@ function sendAutomatedWhatsApp($conn, $order_id) {
     // Prepare variables
     $customerName = trim($order['name']);
     $customerPhone = trim($order['phone']);
-    $orderStatus = ucwords(str_replace('_', ' ', $order['status']));
+    $orderStatus = ucwords(str_replace('_', ' ', $order['status'] ?? 'Processing'));
     $trackingID = !empty($order['tracking_number']) ? $order['tracking_number'] : 'N/A';
-    $orderAmount = number_format($order['total_amount'], 2);
+    $orderAmount = number_format($order['total_amount'] ?? 0, 2);
 
     // Meta API requires strict country code numeric formatting. E.g. India +91
     $clean_number = preg_replace('/[^0-9]/', '', $customerPhone);
-    
-    // Remove leading zero if it exists (common for local numbers)
-    if (strpos($clean_number, '0') === 0) {
-        $clean_number = ltrim($clean_number, '0');
-    }
+    if (strpos($clean_number, '0') === 0) $clean_number = ltrim($clean_number, '0');
+    if (strlen($clean_number) == 10) $clean_number = '91' . $clean_number;
 
-    // Best effort validation for India prefix missing
-    if (strlen($clean_number) == 10) {
-        $clean_number = '91' . $clean_number;
-    }
+    if (empty($clean_number)) return false;
 
-    if (empty($clean_number)) {
-        return false;
-    }
     // Parse Template variables for payload and default text message
     $message = $settings['message_template'];
     $replacementValues = [
@@ -77,21 +68,15 @@ function sendAutomatedWhatsApp($conn, $order_id) {
     $phone_id = trim($settings['phone_number_id']);
     $url = "https://graph.facebook.com/v19.0/{$phone_id}/messages";
     
-    // Check if user has an approved Meta Template Name configured
     $meta_template_name = $settings['meta_template_name'] ?? '';
     if (!empty($meta_template_name)) {
-        // Build template component list by extracting `{Variable}` tags in the EXACT order they appear in user's UI.
-        // This maps the UI variables to Meta's {{1}}, {{2}} automatically.
+        // --- TEMPLATE MODE ---
         preg_match_all('/\{(CustomerName|OrderID|OrderStatus|TrackingID|OrderAmount)\}/', $settings['message_template'], $matches);
         
         $params = [];
         if (!empty($matches[0])) {
             foreach ($matches[0] as $varKey) {
-                // Limit status strings if necessary, though WhatsApp handles regular strings fine
-                $params[] = [
-                    "type" => "text",
-                    "text" => (string)$replacementValues[$varKey]
-                ];
+                $params[] = ["type" => "text", "text" => (string)$replacementValues[$varKey]];
             }
         }
         
@@ -102,34 +87,26 @@ function sendAutomatedWhatsApp($conn, $order_id) {
             "type"              => "template",
             "template"          => [
                 "name"     => trim($meta_template_name),
-                "language" => [
-                    "code" => trim($settings['meta_template_lang'] ?? 'en')
+                "language" => ["code" => trim($settings['meta_template_lang'] ?? 'en')],
+                "components" => [
+                    [
+                        "type" => "body",
+                        "parameters" => $params
+                    ]
                 ]
             ]
         ];
-        
-        if (!empty($params)) {
-            $payload["template"]["components"] = [
-                [
-                    "type" => "body",
-                    "parameters" => $params
-                ]
-            ];
-        }
     } else {
-        // Fallback or Web Mode Legacy Text Structure
+        // --- TEXT MODE ---
         $payload = [
             "messaging_product" => "whatsapp",
             "recipient_type"    => "individual",
             "to"                => $clean_number,
             "type"              => "text",
-            "text"              => [
-                "preview_url" => false,
-                "body"        => $message
-            ]
+            "text"              => ["preview_url" => false, "body" => $message]
         ];
     }
-    // Fire cURL asynchronously (wait max 2 seconds to not block user flow)
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -137,73 +114,35 @@ function sendAutomatedWhatsApp($conn, $order_id) {
         'Content-Type: application/json'
     ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
     $result = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    // Log the result
-    $status_msg = "Unknown";
     $meta_response = json_decode($result, true);
-    if ($result) {
-        if ($http_code == 200 && isset($meta_response['messages'])) {
-            $status_msg = 'Sent via Meta API (Auto)';
-        } else {
-            $error_desc = $meta_response['error']['message'] ?? 'Unknown Meta API Error';
-            $error_code = $meta_response['error']['code'] ?? 'N/A';
-            $status_msg = "Failed API (Auto): (#{$error_code}) " . substr($error_desc, 0, 100);
-            
-            // Log full error for admin debugging
-            $log_dir = __DIR__ . '/../logs';
-            if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
-            $log_entry = '[' . date('Y-m-d H:i:s') . "] Order #$order_id API Error: (#$error_code) $error_desc" . PHP_EOL;
-            $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
-            $log_entry .= "Response: " . $result . PHP_EOL;
-            file_put_contents($log_dir . '/whatsapp_errors.log', $log_entry, FILE_APPEND);
-        }
-    } else {
-        $status_msg = 'Failed API (Auto): Connection timeout';
-    }
+    $status_msg = "";
 
-    // Ensure logs table exists
-    $conn->query("CREATE TABLE IF NOT EXISTS `whatsapp_logs` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
-        `order_id` int(11) NOT NULL,
-        `customer_number` varchar(50) NOT NULL,
-        `message` text NOT NULL,
-        `sending_mode` varchar(20) NOT NULL,
-        `status` varchar(255) NOT NULL,
-        `sent_at` timestamp NOT NULL DEFAULT current_timestamp(),
-        PRIMARY KEY (`id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-    // Insert into logs
-    $stmt = $conn->prepare(
-        "INSERT INTO whatsapp_logs (order_id, customer_number, message, sending_mode, status)
-         VALUES (?, ?, ?, 'api', ?)"
-    );
-    if ($stmt) {
-        $stmt->bind_param("isss", $order_id, $customerPhone, $message, $status_msg);
-        $stmt->execute();
-        $stmt->close();
+    if ($http_code == 200 && isset($meta_response['messages'])) {
+        $status_msg = 'Sent via Meta API (Auto)';
     } else {
-        // Log query failure
-        $log_dir = __DIR__ . '/../logs'; // root/logs
-        if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
-        file_put_contents($log_dir . '/whatsapp_errors.log', '[' . date('Y-m-d H:i:s') . '] DB Error: ' . $conn->error . PHP_EOL, FILE_APPEND);
-    }
-    
-    // Detailed API Logging if failed
-    if (strpos($status_msg, 'Failed') !== false) {
+        $error_desc = $meta_response['error']['message'] ?? 'Connection error or unknown Meta API Error';
+        $error_code = $meta_response['error']['code'] ?? 'N/A';
+        $status_msg = "Failed API (Auto): (#{$error_code}) " . substr($error_desc, 0, 100);
+        
+        // Log deep error for admin
         $log_dir = __DIR__ . '/../logs';
         if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
-        $log_entry = '[' . date('Y-m-d H:i:s') . "] Order #$order_id Error: $status_msg" . PHP_EOL;
+        $log_entry = '[' . date('Y-m-d H:i:s') . "] Order #$order_id API Error: (#$error_code) $error_desc" . PHP_EOL;
         $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
+        $log_entry .= "Response: " . $result . PHP_EOL;
         file_put_contents($log_dir . '/whatsapp_errors.log', $log_entry, FILE_APPEND);
     }
-
-    return ($http_code == 200);
+    
+    // Log to Database using generic INSERT
+    $conn->query("INSERT INTO whatsapp_logs (order_id, customer_number, message, sending_mode, status) VALUES ($order_id, '$clean_number', '" . $conn->real_escape_string($message) . "', 'api', '$status_msg')");
+    
+    return $http_code == 200;
 }
 ?>
