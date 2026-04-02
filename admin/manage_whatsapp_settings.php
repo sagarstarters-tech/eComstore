@@ -122,23 +122,54 @@ $logs = $conn->query($logs_query);
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-5 mb-3">
                             <label class="form-label fw-bold">Meta Template Name</label>
-                            <input type="text" name="meta_template_name" class="form-control bg-light" placeholder="e.g. order_update_v1" value="<?php echo htmlspecialchars($settings['meta_template_name'] ?? ''); ?>">
+                            <div class="input-group">
+                                <input type="text" name="meta_template_name" id="metaTplName" class="form-control bg-light" placeholder="e.g. order_update_v1" value="<?php echo htmlspecialchars($settings['meta_template_name'] ?? ''); ?>">
+                                <button type="button" class="btn btn-outline-primary" id="btnSyncTpl" title="Sync from Meta API"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                            <div id="tplSyncStatus" class="small mt-1 d-none"></div>
                             <small class="text-muted">Must EXACTLY match your approved Meta template name. Leave empty to use legacy text messages.</small>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Meta Template Language</label>
-                            <input type="text" name="meta_template_lang" class="form-control bg-light" placeholder="e.g. en or en_US" value="<?php echo htmlspecialchars($settings['meta_template_lang'] ?? 'en'); ?>">
+                            <input type="text" name="meta_template_lang" id="metaTplLang" class="form-control bg-light" placeholder="e.g. en or en_US" value="<?php echo htmlspecialchars($settings['meta_template_lang'] ?? 'en'); ?>">
                             <small class="text-muted">Language code of approved Meta template.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                             <label class="form-label fw-bold">WABA ID</label>
+                             <input type="text" name="waba_id" id="metaWabaId" class="form-control bg-light" placeholder="Business Account ID" readonly value="<?php echo htmlspecialchars($settings['waba_id'] ?? ''); ?>">
+                             <small class="text-muted">Managed automatically.</small>
                         </div>
                     </div>
 
+                    <div id="metaTemplatesList" class="mb-4 d-none p-3 border rounded-3 bg-white shadow-sm overflow-auto" style="max-height: 250px;">
+                        <h6 class="fw-bold mb-2">Select Approved Template</h6>
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Language</th>
+                                    <th>Category</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tplTableBody"></tbody>
+                        </table>
+                    </div>
+
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Default Message Template</label>
-                        <textarea name="message_template" class="form-control bg-light" rows="8" required><?php echo htmlspecialchars($settings['message_template']); ?></textarea>
+                        <div class="d-flex justify-content-between align-items-end mb-1">
+                             <label class="form-label fw-bold mb-0">Bridge & Variable Mapping</label>
+                             <div class="small text-primary fw-bold" style="cursor:help;" title="This field serves two purposes: 
+1. It is the message sent in 'Web Mode'.
+2. In 'API Template Mode', the ORDER of {Variables} in this text MUST match the index {{1}}, {{2}}... of your Meta Template placeholders.">
+                                <i class="fas fa-info-circle me-1"></i>How mapping works?
+                             </div>
+                        </div>
+                        <textarea name="message_template" class="form-control bg-light" rows="6" required><?php echo htmlspecialchars($settings['message_template']); ?></textarea>
                         <div class="form-text mt-2">
-                            <strong>Available Variables:</strong>
+                            <strong>Available Variables (Dynamic Data):</strong>
                             <code>{CustomerName}</code>, <code>{OrderID}</code>, <code>{OrderStatus}</code>, <code>{TrackingID}</code>, <code>{OrderAmount}</code>
                         </div>
                     </div>
@@ -223,5 +254,77 @@ $logs = $conn->query($logs_query);
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show/Hide password toggle
+    document.getElementById('showPwWhatsapp').addEventListener('change', function() {
+        const input = document.querySelector('input[name="api_token"]');
+        input.type = this.checked ? 'text' : 'password';
+    });
+
+    // Sync Templates Logic
+    const btnSync = document.getElementById('btnSyncTpl');
+    const tplStatus = document.getElementById('tplSyncStatus');
+    const tplList = document.getElementById('metaTemplatesList');
+    const tplTableBody = document.getElementById('tplTableBody');
+
+    btnSync.addEventListener('click', function() {
+        btnSync.disabled = true;
+        btnSync.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        tplStatus.className = 'small mt-1 text-info';
+        tplStatus.innerText = 'Connecting to Meta...';
+        tplStatus.classList.remove('d-none');
+        tplList.classList.add('d-none');
+
+        fetch('ajax_sync_meta_templates.php')
+            .then(res => res.json())
+            .then(data => {
+                btnSync.disabled = false;
+                btnSync.innerHTML = '<i class="fas fa-sync-alt"></i>';
+
+                if (data.error) {
+                    tplStatus.className = 'small mt-1 text-danger';
+                    tplStatus.innerText = 'Error: ' + data.error;
+                } else if (data.templates && data.templates.length > 0) {
+                    tplStatus.className = 'small mt-1 text-success';
+                    tplStatus.innerText = 'Templates fetched successfully!';
+                    
+                    tplTableBody.innerHTML = '';
+                    data.templates.forEach(tpl => {
+                        const row = `
+                            <tr>
+                                <td class="fw-bold fs-7">${tpl.name}</td>
+                                <td class="fs-7">${tpl.language}</td>
+                                <td class="fs-7"><span class="badge bg-light text-dark">${tpl.category}</span></td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-primary py-1 px-2" onclick="selectTemplate('${tpl.name}', '${tpl.language}')">Select</button>
+                                </td>
+                            </tr>
+                        `;
+                        tplTableBody.insertAdjacentHTML('beforeend', row);
+                    });
+                    tplList.classList.remove('d-none');
+                } else {
+                    tplStatus.className = 'small mt-1 text-warning';
+                    tplStatus.innerText = 'No approved templates found.';
+                }
+            })
+            .catch(err => {
+                btnSync.disabled = false;
+                btnSync.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                tplStatus.className = 'small mt-1 text-danger';
+                tplStatus.innerText = 'Network error: ' + err.message;
+            });
+    });
+});
+
+function selectTemplate(name, lang) {
+    document.getElementById('metaTplName').value = name;
+    document.getElementById('metaTplLang').value = lang;
+    document.getElementById('metaTemplatesList').classList.add('d-none');
+    document.getElementById('tplSyncStatus').innerText = 'Template selected: ' + name;
+}
+</script>
 
 <?php require_once 'admin_footer.php'; ?>

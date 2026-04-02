@@ -36,8 +36,8 @@ $stmt = $conn->prepare(
 );
 
 if ($sending_mode === 'api') {
-    // Fetch API Settings
-    $set_q = $conn->query("SELECT api_token, phone_number_id FROM whatsapp_settings WHERE id = 1");
+    // Fetch Complete Settings
+    $set_q = $conn->query("SELECT * FROM whatsapp_settings WHERE id = 1");
     $settings = $set_q->fetch_assoc();
     
     if (empty($settings['api_token']) || empty($settings['phone_number_id'])) {
@@ -51,22 +51,69 @@ if ($sending_mode === 'api') {
 
     $token = trim($settings['api_token']);
     $phone_id = trim($settings['phone_number_id']);
+    $meta_template_name = $settings['meta_template_name'] ?? '';
     
-    // Normalize customer number (Meta expects just digits starting with country code, e.g., 919876543210)
+    // Normalize customer number
     $clean_number = preg_replace('/[^0-9]/', '', $customer_number);
-
     $url = "https://graph.facebook.com/v19.0/{$phone_id}/messages";
     
-    $payload = [
-        "messaging_product" => "whatsapp",
-        "recipient_type"    => "individual",
-        "to"                => $clean_number,
-        "type"              => "text",
-        "text"              => [
-            "preview_url" => false,
-            "body"        => $message
-        ]
-    ];
+    if (!empty($meta_template_name)) {
+        // --- TEMPLATE MODE ---
+        // 1. We need to fetch variables to populate the template
+        // Note: The message passed from modal is the ALREADY REPLACED text.
+        // But for Meta API templates, we need the raw parameters back.
+        // We reuse the mapping in the 'includes/whatsapp_functions.php' logic.
+        
+        $q = $conn->query("
+            SELECT o.id, o.status, o.total_amount, u.name, 
+                   (SELECT tracking_number FROM order_tracking WHERE order_id = o.id LIMIT 1) as tracking_number
+            FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = $order_id
+        ");
+        $order = $q->fetch_assoc();
+        
+        $replacementValues = [
+            '{CustomerName}' => trim($order['name']),
+            '{OrderID}'      => $order['id'],
+            '{OrderStatus}'  => ucwords(str_replace('_', ' ', $order['status'])),
+            '{TrackingID}'   => $order['tracking_number'] ?: 'N/A',
+            '{OrderAmount}'  => number_format($order['total_amount'], 2)
+        ];
+
+        preg_match_all('/\{(CustomerName|OrderID|OrderStatus|TrackingID|OrderAmount)\}/', $settings['message_template'], $matches);
+        
+        $params = [];
+        if (!empty($matches[0])) {
+            foreach ($matches[0] as $varKey) {
+                $params[] = ["type" => "text", "text" => (string)$replacementValues[$varKey]];
+            }
+        }
+
+        $payload = [
+            "messaging_product" => "whatsapp",
+            "recipient_type"    => "individual",
+            "to"                => $clean_number,
+            "type"              => "template",
+            "template"          => [
+                "name"     => $meta_template_name,
+                "language" => ["code" => $settings['meta_template_lang'] ?? 'en'],
+                "components" => [
+                    [
+                        "type" => "body",
+                        "parameters" => $params
+                    ]
+                ]
+            ]
+        ];
+    } else {
+        // --- PLAIN TEXT MODE ---
+        $payload = [
+            "messaging_product" => "whatsapp",
+            "recipient_type"    => "individual",
+            "to"                => $clean_number,
+            "type"              => "text",
+            "text"              => ["preview_url" => false, "body" => $message]
+        ];
+    }
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
