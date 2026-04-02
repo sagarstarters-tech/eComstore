@@ -143,3 +143,13 @@ Stack trace:
 #0 C:\xampp\htdocs\eComstore\tmp_check_logs.php(3): mysqli->query('SELECT * FROM w...')
 #1 {main}
   thrown in C:\xampp\htdocs\eComstore\tmp_check_logs.php on line 3
+[02-Apr-2026 08:24:03 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'waba_id' in 'field list' in C:\xampp\htdocs\eComstore\tmp_fetch_template.php:4
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\tmp_fetch_template.php(4): mysqli->query('SELECT api_toke...')
+#1 {main}
+  thrown in C:\xampp\htdocs\eComstore\tmp_fetch_template.php on line 4
+[02-Apr-2026 08:27:46 Asia/Kolkata] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'waba_id' in 'field list' in C:\xampp\htdocs\eComstore\tmp_fetch_tpl.php:4
+Stack trace:
+#0 C:\xampp\htdocs\eComstore\tmp_fetch_tpl.php(4): mysqli->query('SELECT api_toke...')
+#1 {main}
+  thrown in C:\xampp\htdocs\eComstore\tmp_fetch_tpl.php on line 4
