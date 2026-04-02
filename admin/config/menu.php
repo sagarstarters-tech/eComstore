@@ -141,6 +141,36 @@ return [
         ],
     ],
 
+    // ── Media / Gallery ──────────────────────────────────────
+    [
+        'label'    => 'Media / Gallery',
+        'icon'     => 'fa-photo-video',
+        'pages'    => ['manage_media.php'],
+        'children' => [
+            [
+                'label'  => 'All Media',
+                'icon'   => 'fa-th',
+                'url'    => 'manage_media.php?type=all',
+                'pages'  => ['manage_media.php'],
+                'params' => ['type' => ['all', null, '']],
+            ],
+            [
+                'label'  => 'Images',
+                'icon'   => 'fa-image',
+                'url'    => 'manage_media.php?type=image',
+                'pages'  => ['manage_media.php'],
+                'params' => ['type' => ['image']],
+            ],
+            [
+                'label'  => 'Videos',
+                'icon'   => 'fa-video',
+                'url'    => 'manage_media.php?type=video',
+                'pages'  => ['manage_media.php'],
+                'params' => ['type' => ['video']],
+            ],
+        ],
+    ],
+
     // ── Frontend Content ──────────────────────────────────────
     [
         'label'    => 'Frontend Content',
