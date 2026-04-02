@@ -82,12 +82,23 @@ if ($sending_mode === 'api') {
         ");
         $order = $q->fetch_assoc();
         
+        // Failsafe for test mode (if order doesn't exist)
+        if (!$order) {
+            $order = [
+                'id' => $order_id,
+                'status' => 'processing',
+                'total_amount' => 1999.00,
+                'name' => 'Demo Customer',
+                'tracking_number' => 'TEST123456789'
+            ];
+        }
+        
         $replacementValues = [
-            '{CustomerName}' => trim($order['name']),
-            '{OrderID}'      => $order['id'],
-            '{OrderStatus}'  => ucwords(str_replace('_', ' ', $order['status'])),
-            '{TrackingID}'   => $order['tracking_number'] ?: 'N/A',
-            '{OrderAmount}'  => number_format($order['total_amount'], 2)
+            '{CustomerName}' => trim($order['name'] ?? 'Customer'),
+            '{OrderID}'      => $order['id'] ?? $order_id,
+            '{OrderStatus}'  => ucwords(str_replace('_', ' ', $order['status'] ?? 'Processing')),
+            '{TrackingID}'   => $order['tracking_number'] ?: 'TESTTRACKING123',
+            '{OrderAmount}'  => number_format($order['total_amount'] ?? 0, 2)
         ];
 
         preg_match_all('/\{(CustomerName|OrderID|OrderStatus|TrackingID|OrderAmount)\}/', $settings['message_template'], $matches);

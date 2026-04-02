@@ -383,8 +383,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Note: we use order_id=1 or latest order if possible. Here we just hardcode a placeholder.
         fetch('ajax_log_whatsapp.php?test=1&number=' + phone)
-            .then(res => res.json())
-            .then(data => {
+            .then(res => res.text()) // Get raw text first to handle PHP errors
+            .then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                }
+                
                 btnRunTest.disabled = false;
                 btnRunTest.innerText = 'Send Test Message';
                 if (data.success) {
