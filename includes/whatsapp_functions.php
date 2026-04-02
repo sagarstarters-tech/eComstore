@@ -146,13 +146,22 @@ function sendAutomatedWhatsApp($conn, $order_id) {
     
     // Log the result
     $status_msg = "Unknown";
+    $meta_response = json_decode($result, true);
     if ($result) {
-        $meta_response = json_decode($result, true);
         if ($http_code == 200 && isset($meta_response['messages'])) {
             $status_msg = 'Sent via Meta API (Auto)';
         } else {
             $error_desc = $meta_response['error']['message'] ?? 'Unknown Meta API Error';
-            $status_msg = 'Failed API (Auto): ' . substr($error_desc, 0, 100);
+            $error_code = $meta_response['error']['code'] ?? 'N/A';
+            $status_msg = "Failed API (Auto): (#{$error_code}) " . substr($error_desc, 0, 100);
+            
+            // Log full error for admin debugging
+            $log_dir = __DIR__ . '/../logs';
+            if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+            $log_entry = '[' . date('Y-m-d H:i:s') . "] Order #$order_id API Error: (#$error_code) $error_desc" . PHP_EOL;
+            $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
+            $log_entry .= "Response: " . $result . PHP_EOL;
+            file_put_contents($log_dir . '/whatsapp_errors.log', $log_entry, FILE_APPEND);
         }
     } else {
         $status_msg = 'Failed API (Auto): Connection timeout';

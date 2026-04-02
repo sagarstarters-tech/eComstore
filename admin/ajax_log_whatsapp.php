@@ -137,11 +137,21 @@ if ($sending_mode === 'api') {
         echo json_encode(['success' => true]);
     } else {
         $error_desc = $meta_response['error']['message'] ?? 'Unknown Meta API Error';
-        $status = 'Failed: ' . substr($error_desc, 0, 100);
+        $error_code = $meta_response['error']['code'] ?? 'N/A';
+        $status = "Failed API: (#{$error_code}) " . substr($error_desc, 0, 100);
+        
+        // Log deep error
+        $log_dir = __DIR__ . '/../logs';
+        if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+        $log_entry = '[' . date('Y-m-d H:i:s') . "] Manual Order #$order_id API Error: (#$error_code) $error_desc" . PHP_EOL;
+        $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
+        $log_entry .= "Response: " . $result . PHP_EOL;
+        file_put_contents($log_dir . '/whatsapp_errors.log', $log_entry, FILE_APPEND);
+
         $stmt->bind_param("issss", $order_id, $customer_number, $message, $sending_mode, $status);
         $stmt->execute();
         $stmt->close();
-        echo json_encode(['success' => false, 'error' => "Meta API Error: " . $error_desc]);
+        echo json_encode(['success' => false, 'error' => "Meta API Error (#$error_code): " . $error_desc]);
     }
 } else {
     // Web Mode
