@@ -8,6 +8,7 @@ $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS chat_widget
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS phone_number_id VARCHAR(50) NOT NULL DEFAULT ''");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_name VARCHAR(100) NOT NULL DEFAULT ''");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_lang VARCHAR(10) NOT NULL DEFAULT 'en'");
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS waba_id VARCHAR(50) NOT NULL DEFAULT ''");
 
 // Fetch current settings
 $settings_query = "SELECT * FROM whatsapp_settings WHERE id = 1";
@@ -36,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $chat_widget_message = $conn->real_escape_string($_POST['chat_widget_message'] ?? 'Hello, I have a question about your products.');
     $meta_template_name = $conn->real_escape_string($_POST['meta_template_name'] ?? '');
     $meta_template_lang = $conn->real_escape_string($_POST['meta_template_lang'] ?? 'en');
+    $waba_id = $conn->real_escape_string($_POST['waba_id'] ?? '');
 
     $update_query = "UPDATE whatsapp_settings SET 
         is_enabled = $is_enabled,
@@ -48,7 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         chat_widget_number = '$chat_widget_number',
         chat_widget_message = '$chat_widget_message',
         meta_template_name = '$meta_template_name',
-        meta_template_lang = '$meta_template_lang'
+        meta_template_lang = '$meta_template_lang',
+        waba_id = '$waba_id'
         WHERE id = 1";
 
     if ($conn->query($update_query)) {
@@ -137,9 +140,9 @@ $logs = $conn->query($logs_query);
                             <small class="text-muted">Language code of approved Meta template.</small>
                         </div>
                         <div class="col-md-3 mb-3">
-                             <label class="form-label fw-bold">WABA ID</label>
-                             <input type="text" name="waba_id" id="metaWabaId" class="form-control bg-light" placeholder="Business Account ID" readonly value="<?php echo htmlspecialchars($settings['waba_id'] ?? ''); ?>">
-                             <small class="text-muted">Managed automatically.</small>
+                             <label class="form-label fw-bold">WABA ID <small class="text-muted">(Optional)</small></label>
+                             <input type="text" name="waba_id" id="metaWabaId" class="form-control bg-light" placeholder="Business Account ID" value="<?php echo htmlspecialchars($settings['waba_id'] ?? ''); ?>">
+                             <small class="text-muted">Enter manually if sync fails.</small>
                         </div>
                     </div>
 
@@ -277,7 +280,8 @@ document.addEventListener('DOMContentLoaded', function() {
         tplStatus.classList.remove('d-none');
         tplList.classList.add('d-none');
 
-        fetch('ajax_sync_meta_templates.php')
+        const currentWabaId = document.getElementById('metaWabaId').value;
+        fetch('ajax_sync_meta_templates.php?waba_id=' + encodeURIComponent(currentWabaId))
             .then(res => res.json())
             .then(data => {
                 btnSync.disabled = false;
