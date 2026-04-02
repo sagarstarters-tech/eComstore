@@ -17,8 +17,8 @@ $settings = $result->fetch_assoc();
 
 if (!$settings) {
     // Failsafe insert if missing
-    $conn->query("INSERT IGNORE INTO whatsapp_settings (id, message_template) VALUES (1, 'Hello {CustomerName},\n\nYour Order #{OrderID} status has been updated.\n\nCurrent Status: *{OrderStatus}*\nTracking ID: {TrackingID}\nTotal Amount: ₹{OrderAmount}\n\nThank you for shopping with us.')");
-    $settings = ['is_enabled'=>1, 'sender_number'=>'', 'api_token'=>'', 'sending_mode'=>'web', 'message_template'=>'Hello {CustomerName},\n\nYour Order #{OrderID} status has been updated.\n\nCurrent Status: *{OrderStatus}*\nTracking ID: {TrackingID}\nTotal Amount: ₹{OrderAmount}\n\nThank you for shopping with us.', 'chat_widget_enabled'=>1, 'chat_widget_number'=>'', 'chat_widget_message'=>'Hello, I have a question about your products.'];
+    $conn->query("INSERT IGNORE INTO whatsapp_settings (id, message_template) VALUES (1, 'Hello Dear {CustomerName},\n\nYour Order No. #{OrderID} status has been updated.\n\nCurrent Status: *{OrderStatus}*\nTracking ID: {TrackingID}\nTotal Amount: ₹{OrderAmount}\n\n{CustomerName} Thank you for shopping with us.')");
+    $settings = ['is_enabled'=>1, 'sender_number'=>'', 'api_token'=>'', 'sending_mode'=>'web', 'message_template'=>'Hello Dear {CustomerName},\n\nYour Order No. #{OrderID} status has been updated.\n\nCurrent Status: *{OrderStatus}*\nTracking ID: {TrackingID}\nTotal Amount: ₹{OrderAmount}\n\n{CustomerName} Thank you for shopping with us.', 'chat_widget_enabled'=>1, 'chat_widget_number'=>'', 'chat_widget_message'=>'Hello, I have a question about your products.'];
 }
 
 $success_msg = '';
