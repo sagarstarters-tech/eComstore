@@ -110,6 +110,28 @@ if ($sending_mode === 'api') {
             }
         }
 
+        // Build components array (body is always included)
+        $components = [
+            [
+                "type" => "body",
+                "parameters" => $params
+            ]
+        ];
+        
+        // Add header image component if configured
+        $header_image_url = trim($settings['wa_header_image_url'] ?? '');
+        if (!empty($header_image_url)) {
+            array_unshift($components, [
+                "type" => "header",
+                "parameters" => [
+                    [
+                        "type" => "image",
+                        "image" => ["link" => $header_image_url]
+                    ]
+                ]
+            ]);
+        }
+
         $payload = [
             "messaging_product" => "whatsapp",
             "recipient_type"    => "individual",
@@ -118,12 +140,7 @@ if ($sending_mode === 'api') {
             "template"          => [
                 "name"     => $meta_template_name,
                 "language" => ["code" => $settings['meta_template_lang'] ?? 'en'],
-                "components" => [
-                    [
-                        "type" => "body",
-                        "parameters" => $params
-                    ]
-                ]
+                "components" => $components
             ]
         ];
     } else {

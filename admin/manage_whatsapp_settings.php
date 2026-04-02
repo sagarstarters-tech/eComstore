@@ -9,6 +9,7 @@ $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS phone_numbe
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_name VARCHAR(100) NOT NULL DEFAULT ''");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_lang VARCHAR(10) NOT NULL DEFAULT 'en'");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS waba_id VARCHAR(50) NOT NULL DEFAULT ''");
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS wa_header_image_url VARCHAR(500) NOT NULL DEFAULT ''");
 
 // Fetch current settings
 $settings_query = "SELECT * FROM whatsapp_settings WHERE id = 1";
@@ -38,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $meta_template_name = $conn->real_escape_string($_POST['meta_template_name'] ?? '');
     $meta_template_lang = $conn->real_escape_string($_POST['meta_template_lang'] ?? 'en');
     $waba_id = $conn->real_escape_string($_POST['waba_id'] ?? '');
+    $wa_header_image_url = $conn->real_escape_string(trim($_POST['wa_header_image_url'] ?? ''));
 
     $update_query = "UPDATE whatsapp_settings SET 
         is_enabled = $is_enabled,
@@ -51,7 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         chat_widget_message = '$chat_widget_message',
         meta_template_name = '$meta_template_name',
         meta_template_lang = '$meta_template_lang',
-        waba_id = '$waba_id'
+        waba_id = '$waba_id',
+        wa_header_image_url = '$wa_header_image_url'
         WHERE id = 1";
 
     if ($conn->query($update_query)) {
@@ -144,6 +147,12 @@ $logs = $conn->query($logs_query);
                              <input type="text" name="waba_id" id="metaWabaId" class="form-control bg-light" placeholder="Business Account ID" value="<?php echo htmlspecialchars($settings['waba_id'] ?? ''); ?>">
                              <small class="text-muted">Enter manually if sync fails.</small>
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="fas fa-image text-info me-1"></i>Template Header Image URL <small class="text-muted">(Required if template has image header)</small></label>
+                        <input type="url" name="wa_header_image_url" class="form-control bg-light" placeholder="https://yourdomain.com/path/to/header-image.png" value="<?php echo htmlspecialchars($settings['wa_header_image_url'] ?? ''); ?>">
+                        <small class="text-muted">Public HTTPS URL of the image shown in template header. Must be a <strong>.jpg</strong> or <strong>.png</strong> file accessible from the internet.</small>
                     </div>
 
                     <div id="metaTemplatesList" class="mb-4 d-none p-3 border rounded-3 bg-white shadow-sm overflow-auto" style="max-height: 250px;">
