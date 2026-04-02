@@ -86,7 +86,7 @@ $logs = $conn->query($logs_query);
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-4">
                 <form method="POST">
-    <?php echo csrf_input(); ?>
+                    <?php echo csrf_input(); ?>
                     <input type="hidden" name="action" value="update_settings">
                     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                         <h5 class="fw-bold m-0">General Configuration</h5>
@@ -206,7 +206,12 @@ $logs = $conn->query($logs_query);
                     <!-- ===== End Chat Widget Section ===== -->
 
                     <div class="text-end mt-4">
-                        <button type="submit" class="btn btn-success btn-custom px-4"><i class="fas fa-save me-2"></i>Save Configuration</button>
+                        <button type="submit" class="btn btn-primary px-5 py-2 fw-bold rounded-3 shadow-sm me-2">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                        <button type="button" class="btn btn-outline-warning px-4 py-2 fw-bold rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#testWhatsappModal">
+                            <i class="fas fa-vial me-2"></i>Test Notification
+                        </button>
                     </div>
                 </form>
             </div>
@@ -329,6 +334,75 @@ function selectTemplate(name, lang) {
     document.getElementById('metaTemplatesList').classList.add('d-none');
     document.getElementById('tplSyncStatus').innerText = 'Template selected: ' + name;
 }
+</script>
+
+<!-- Test WhatsApp Modal -->
+<div class="modal fade" id="testWhatsappModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold text-primary"><i class="fas fa-paper-plane me-2"></i>Send Test Notification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4">Testing will use a most recent order to populate variables like {CustomerName}.</p>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase tracking-wider">Recipient Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-phone-alt text-muted"></i></span>
+                        <input type="text" id="testPhone" class="form-control border-start-0 py-2" placeholder="e.g. 919876543210" value="">
+                    </div>
+                    <div class="form-text mt-2" style="font-size:0.75rem;">
+                        <i class="fas fa-info-circle me-1"></i> Include country code (e.g. <strong>91</strong> for India). Do NOT include +.
+                    </div>
+                </div>
+                <div id="testResult" class="d-none mb-3"></div>
+                <button type="button" id="btnRunTest" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm border-0">
+                    Send Test Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnRunTest = document.getElementById('btnRunTest');
+    const testPhone = document.getElementById('testPhone');
+    const testResult = document.getElementById('testResult');
+
+    btnRunTest.addEventListener('click', function() {
+        const phone = testPhone.value.replace(/\D/g, '');
+        if (!phone) { alert('Please enter a valid number (e.g. 919876543210)'); return; }
+
+        btnRunTest.disabled = true;
+        btnRunTest.innerText = 'Sending...';
+        testResult.className = 'alert alert-info py-2 small';
+        testResult.innerText = 'Calling API...';
+        testResult.classList.remove('d-none');
+
+        // Note: we use order_id=1 or latest order if possible. Here we just hardcode a placeholder.
+        fetch('ajax_log_whatsapp.php?test=1&number=' + phone)
+            .then(res => res.json())
+            .then(data => {
+                btnRunTest.disabled = false;
+                btnRunTest.innerText = 'Send Test Message';
+                if (data.success) {
+                    testResult.className = 'alert alert-success py-2 small';
+                    testResult.innerText = 'SUCCESS! Message sent via API.';
+                } else {
+                    testResult.className = 'alert alert-danger py-2 small';
+                    testResult.innerText = 'FAILED: ' + (data.error || 'Unknown error');
+                }
+            })
+            .catch(err => {
+                btnRunTest.disabled = false;
+                btnRunTest.innerText = 'Send Test Message';
+                testResult.className = 'alert alert-danger py-2 small';
+                testResult.innerText = 'Network error: ' + err.message;
+            });
+    });
+});
 </script>
 
 <?php require_once 'admin_footer.php'; ?>
