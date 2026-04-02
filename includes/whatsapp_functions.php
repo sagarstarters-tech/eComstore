@@ -125,24 +125,41 @@ function sendAutomatedWhatsApp($conn, $order_id) {
     }
 
     $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    curl_setopt($ch, CURLOPT_POSTFIELDS,    json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER,    [
         'Authorization: Bearer ' . $token,
         'Content-Type: application/json'
     ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT,        15);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
-    $result = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $result     = curl_exec($ch);
+    $http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
     curl_close($ch);
+    
+    // Always log every API call for diagnosis
+    $log_dir = __DIR__ . '/../logs';
+    if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+    $log_entry = '[' . date('Y-m-d H:i:s') . "] Auto-Send Order#$order_id HTTP:{$http_code} To:{$clean_number}" . PHP_EOL;
+    $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
+    $log_entry .= "Response: " . $result . PHP_EOL;
+    $log_entry .= str_repeat('-', 60) . PHP_EOL;
+    file_put_contents($log_dir . '/whatsapp_api.log', $log_entry, FILE_APPEND);
+    
+    if ($curl_error) {
+        error_log("[WhatsApp] cURL Error Order#$order_id: $curl_error");
+        $conn->query("INSERT INTO whatsapp_logs (order_id, customer_number, message, sending_mode, status) VALUES ($order_id, '$clean_number', '" . $conn->real_escape_string($message) . "', 'api', 'Failed: cURL - " . $conn->real_escape_string(substr($curl_error,0,80)) . "')");
+        return false;
+    }
     
     $meta_response = json_decode($result, true);
     $status_msg = "";
 
     if ($http_code == 200 && isset($meta_response['messages'])) {
-        $status_msg = 'Sent via Meta API (Auto)';
+        $msg_id  = $meta_response['messages'][0]['id'] ?? 'unknown';
+        $status_msg = 'Sent via Meta API (Auto) ID:' . substr($msg_id, 0, 20);
     } else {
         $error_desc = $meta_response['error']['message'] ?? 'Connection error or unknown Meta API Error';
         $error_code = $meta_response['error']['code'] ?? 'N/A';

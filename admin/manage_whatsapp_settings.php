@@ -404,11 +404,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnRunTest.disabled = false;
                 btnRunTest.innerText = 'Send Test Message';
                 if (data.success) {
+                    const msgId = data.message_id ? `<br><small class="text-muted">Message ID: ${data.message_id}</small>` : '';
+                    const msgStatus = data.message_status ? `<br><small class="text-muted">Status: <strong>${data.message_status}</strong></small>` : '';
                     testResult.className = 'alert alert-success py-2 small';
-                    testResult.innerText = 'SUCCESS! Message sent via API.';
+                    testResult.innerHTML = `✅ <strong>API Accepted!</strong> Message queued for delivery.${msgId}${msgStatus}`
+                        + `<br><small class="text-muted mt-1 d-block">If NOT received: check <a href="whatsapp_debug.php" target="_blank">WhatsApp Debug Tool</a></small>`;
                 } else {
+                    const errCode = data.error_code ? ` [Code: ${data.error_code}]` : '';
+                    const details = data.details ? `<br><small>${data.details}</small>` : '';
                     testResult.className = 'alert alert-danger py-2 small';
-                    testResult.innerText = 'FAILED: ' + (data.error || 'Unknown error');
+                    testResult.innerHTML = `❌ <strong>FAILED${errCode}:</strong> ${data.error || 'Unknown error'}${details}`
+                        + `<br><small class="mt-1 d-block"><a href="whatsapp_debug.php" target="_blank">→ Open Debug Tool for full details</a></small>`;
                 }
             })
             .catch(err => {

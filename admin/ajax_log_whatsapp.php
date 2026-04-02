@@ -155,42 +155,66 @@ if ($sending_mode === 'api') {
     }
 
     $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    curl_setopt($ch, CURLOPT_POSTFIELDS,    json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER,    [
         'Authorization: Bearer ' . $token,
         'Content-Type: application/json'
     ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT,        20); // increased from default
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
-    $result = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $result     = curl_exec($ch);
+    $http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
     curl_close($ch);
     
     $meta_response = json_decode($result, true);
     
-    if ($http_code == 200 && isset($meta_response['messages'])) {
-        $status = 'Sent via Meta API';
+    // Always log full interaction for traceability
+    $log_dir = __DIR__ . '/../logs';
+    if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
+    $log_entry = '[' . date('Y-m-d H:i:s') . "] Order #$order_id → HTTP:{$http_code} To:{$clean_number}" . PHP_EOL;
+    $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
+    $log_entry .= "Response: " . $result . PHP_EOL;
+    $log_entry .= str_repeat('-', 60) . PHP_EOL;
+    file_put_contents($log_dir . '/whatsapp_api.log', $log_entry, FILE_APPEND);
+
+    if ($curl_error) {
+        $status = "Failed: cURL error - " . substr($curl_error, 0, 100);
         $stmt->bind_param("issss", $order_id, $customer_number, $message, $sending_mode, $status);
-        $stmt->execute();
-        $stmt->close();
-        echo json_encode(['success' => true]);
+        $stmt->execute(); $stmt->close();
+        echo json_encode(['success' => false, 'error' => 'Network error: ' . $curl_error]);
+
+    } elseif ($http_code == 200 && isset($meta_response['messages'])) {
+        $msg_id     = $meta_response['messages'][0]['id'] ?? 'unknown';
+        $msg_status = $meta_response['messages'][0]['message_status'] ?? 'accepted';
+        $status     = 'Sent via Meta API (ID: ' . substr($msg_id, 0, 30) . ')';
+        $stmt->bind_param("issss", $order_id, $customer_number, $message, $sending_mode, $status);
+        $stmt->execute(); $stmt->close();
+        echo json_encode([
+            'success'        => true,
+            'message_id'     => $msg_id,
+            'message_status' => $msg_status,
+        ]);
+
     } else {
         $error_desc = $meta_response['error']['message'] ?? 'Unknown Meta API Error';
         $error_code = $meta_response['error']['code'] ?? 'N/A';
-        $status = "Failed API: (#{$error_code}) " . substr($error_desc, 0, 100);
+        $error_data = $meta_response['error']['error_data']['details'] ?? '';
+        $status     = "Failed API: (#{$error_code}) " . substr($error_desc, 0, 100);
         
-        // Log deep error
-        $log_dir = __DIR__ . '/../logs';
-        if (!is_dir($log_dir)) mkdir($log_dir, 0755, true);
-        $log_entry = '[' . date('Y-m-d H:i:s') . "] Manual Order #$order_id API Error: (#$error_code) $error_desc" . PHP_EOL;
-        $log_entry .= "Payload: " . json_encode($payload) . PHP_EOL;
-        $log_entry .= "Response: " . $result . PHP_EOL;
+        // Also log to error-specific file
         file_put_contents($log_dir . '/whatsapp_errors.log', $log_entry, FILE_APPEND);
 
         $stmt->bind_param("issss", $order_id, $customer_number, $message, $sending_mode, $status);
-        $stmt->execute();
-        $stmt->close();
-        echo json_encode(['success' => false, 'error' => "Meta API Error (#$error_code): " . $error_desc]);
+        $stmt->execute(); $stmt->close();
+        echo json_encode([
+            'success'    => false,
+            'error'      => "Meta API Error (#{$error_code}): " . $error_desc,
+            'error_code' => $error_code,
+            'details'    => $error_data,
+        ]);
     }
 } else {
     // Web Mode
