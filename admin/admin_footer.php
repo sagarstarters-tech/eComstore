@@ -96,6 +96,188 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 </script>
 <?php endif; ?>
+
+<!-- Upload Source Chooser Modal -->
+<div class="modal fade" id="uploadSourceModal" tabindex="-1" aria-labelledby="uploadSourceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="uploadSourceModalLabel">Choose Source</h5>
+        <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center p-4">
+        <button type="button" class="btn btn-primary w-100 mb-3 btn-custom py-3" id="btnUploadComputer">
+            <i class="fas fa-desktop fs-4 mb-2 d-block"></i> Upload from Computer
+        </button>
+        <button type="button" class="btn btn-info w-100 btn-custom py-3 text-white" id="btnUploadGallery">
+            <i class="fas fa-images fs-4 mb-2 d-block"></i> Choose from Gallery
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Media Gallery Selector Modal -->
+<div class="modal fade" id="mediaGallerySelectorModal" tabindex="-1" aria-labelledby="mediaGallerySelectorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="mediaGallerySelectorModalLabel"><i class="fas fa-images me-2 text-primary"></i>Media Gallery</h5>
+        <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body bg-light p-4">
+         <div class="row g-3" id="mediaGallerySelectorGrid">
+             <div class="col-12 text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Loading gallery...</div></div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.gallery-select-item {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 3px solid transparent;
+}
+.gallery-select-item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentFileInput = null;
+    let bypassClick = false;
+    let uploadSourceModalInstance = null;
+    let mediaGallerySelectorModalInstance = null;
+
+    // Delegate click for file inputs
+    document.addEventListener('click', function(e) {
+        let target = e.target;
+        if(target.tagName !== 'INPUT' || target.type !== 'file') {
+            return;
+        }
+
+        // If it's a file input, we intercept it unless bypassClick is true
+        if(!bypassClick) {
+            e.preventDefault();
+            currentFileInput = target;
+            if(!uploadSourceModalInstance) {
+                uploadSourceModalInstance = new mdb.Modal(document.getElementById('uploadSourceModal'));
+            }
+            uploadSourceModalInstance.show();
+        }
+    });
+
+    document.getElementById('btnUploadComputer').addEventListener('click', function() {
+        if(currentFileInput) {
+            bypassClick = true;
+            currentFileInput.click();
+            bypassClick = false; // Reset immediately
+        }
+        uploadSourceModalInstance.hide();
+    });
+
+    document.getElementById('btnUploadGallery').addEventListener('click', function() {
+        uploadSourceModalInstance.hide();
+        if(!mediaGallerySelectorModalInstance) {
+            mediaGallerySelectorModalInstance = new mdb.Modal(document.getElementById('mediaGallerySelectorModal'));
+        }
+        mediaGallerySelectorModalInstance.show();
+        loadMediaGallerySelector();
+    });
+
+    function loadMediaGallerySelector() {
+        const grid = document.getElementById('mediaGallerySelectorGrid');
+        grid.innerHTML = '<div class="col-12 text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Loading gallery...</div></div>';
+        
+        fetch('ajax_get_media.php')
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    grid.innerHTML = '';
+                    if(data.data.length === 0) {
+                        grid.innerHTML = '<div class="col-12 text-center text-muted py-5">No images found in gallery.</div>';
+                        return;
+                    }
+                    data.data.forEach(item => {
+                        const col = document.createElement('div');
+                        col.className = 'col-6 col-md-4 col-lg-3 col-xl-2';
+                        col.innerHTML = `
+                            <div class="card h-100 border-0 shadow-sm overflow-hidden bg-white">
+                                <img src="${item.file_url}" class="card-img-top gallery-select-item w-100" data-url="${item.file_url}" data-name="${item.file_name}" alt="${item.original_name}">
+                            </div>
+                        `;
+                        grid.appendChild(col);
+                    });
+                } else {
+                    grid.innerHTML = `<div class="col-12 text-danger py-3 text-center">Failed to load media.</div>`;
+                }
+            })
+            .catch(err => {
+                grid.innerHTML = `<div class="col-12 text-danger py-3 text-center">Error loading media.</div>`;
+            });
+    }
+
+    document.getElementById('mediaGallerySelectorGrid').addEventListener('click', function(e) {
+        if(e.target.classList.contains('gallery-select-item')) {
+            const url = e.target.getAttribute('data-url');
+            const fileName = e.target.getAttribute('data-name');
+            selectImageFromGallery(url, fileName, e.target);
+        }
+    });
+
+    async function selectImageFromGallery(url, fileName, imgElement) {
+        if(!currentFileInput) return;
+        
+        // Visual feedback
+        const oldBorder = imgElement.style.border;
+        imgElement.style.border = '3px solid #3b71ca';
+        imgElement.style.opacity = '0.7';
+
+        // Add a small loading spinner over the image or button
+        const overlay = document.createElement('div');
+        overlay.className = 'position-absolute top-50 start-50 translate-middle';
+        overlay.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        imgElement.parentElement.style.position = 'relative';
+        imgElement.parentElement.appendChild(overlay);
+
+        try {
+            // Fetch the image as a Blob
+            const response = await fetch(url);
+            if(!response.ok) throw new Error("Network response was not ok");
+            const blob = await response.blob();
+            
+            // Reconstruct File object
+            const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+            
+            // Create a DataTransfer to assign to file input
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            currentFileInput.files = dt.files;
+            
+            // Trigger change event to update any UI previews attached to the normal upload
+            currentFileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            // Close modal
+            mediaGallerySelectorModalInstance.hide();
+        } catch(err) {
+            console.error("Error fetching gallery image:", err);
+            alert("Could not load the image from the gallery.");
+        } finally {
+            imgElement.style.border = oldBorder;
+            imgElement.style.opacity = '1';
+            if (overlay.parentElement) overlay.remove();
+        }
+    }
+});
+</script>
+
 <!-- MDB JS -->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.0/mdb.min.js"></script>
 </body>
