@@ -114,9 +114,8 @@ if (!is_dir($upload_dir)) {
 $dest_path = $upload_dir . '/' . $unique_name;
 $relative_path = 'uploads/media/' . $sub_folder . '/' . $unique_name;
 
-// Determine file URL (relative from admin/ — consistent with how banner images use ASSETS_URL)
-$site_url = defined('SITE_URL') ? rtrim(SITE_URL, '/') : '';
-$file_url = $site_url . '/' . $relative_path;
+// Determine file URL (store relative path in DB for portability. We'll prepend domain in the UI/PHP where needed.)
+$file_url = $relative_path;
 
 // ── SVG sanitization ─────────────────────────────────────
 if ($extension === 'svg') {

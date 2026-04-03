@@ -715,6 +715,10 @@ $total_videos = (int)($conn->query("SELECT COUNT(*) as c FROM media_library WHER
         $filesize_display = $filesize_kb >= 1024 ? round($filesize_kb / 1024, 1) . ' MB' : $filesize_kb . ' KB';
         $dims = ($m['width'] && $m['height']) ? $m['width'] . '×' . $m['height'] : '';
     ?>
+    <?php 
+        $display_url = (strpos($m['file_url'], 'http') === 0) ? $m['file_url'] : '../' . $m['file_url'];
+        $absolute_url = (strpos($m['file_url'], 'http') === 0) ? $m['file_url'] : SITE_URL . '/' . $m['file_url'];
+    ?>
     <div class="media-card"
          data-id="<?php echo $m['id']; ?>"
          data-filename="<?php echo htmlspecialchars($m['original_name']); ?>"
@@ -723,6 +727,7 @@ $total_videos = (int)($conn->query("SELECT COUNT(*) as c FROM media_library WHER
          data-filesize="<?php echo $filesize_display; ?>"
          data-dims="<?php echo $dims; ?>"
          data-url="<?php echo htmlspecialchars($m['file_url']); ?>"
+         data-full-url="<?php echo htmlspecialchars($absolute_url); ?>"
          data-alt="<?php echo htmlspecialchars($m['alt_text']); ?>"
          data-caption="<?php echo htmlspecialchars($m['caption'] ?? ''); ?>"
          data-date="<?php echo date('M d, Y h:i A', strtotime($m['created_at'])); ?>"
@@ -730,12 +735,12 @@ $total_videos = (int)($conn->query("SELECT COUNT(*) as c FROM media_library WHER
         <div class="media-thumb">
             <?php if ($is_video): ?>
                 <video preload="metadata" muted>
-                    <source src="<?php echo htmlspecialchars($m['file_url']); ?>" type="<?php echo htmlspecialchars($m['mime_type']); ?>">
+                    <source src="<?php echo $display_url; ?>" type="<?php echo htmlspecialchars($m['mime_type']); ?>">
                 </video>
                 <div class="video-overlay"><i class="fas fa-play-circle"></i></div>
                 <span class="type-badge video">Video</span>
             <?php else: ?>
-                <img src="<?php echo htmlspecialchars($m['file_url']); ?>" alt="<?php echo htmlspecialchars($m['alt_text']); ?>" loading="lazy">
+                <img src="<?php echo $display_url; ?>" alt="<?php echo htmlspecialchars($m['alt_text']); ?>" loading="lazy">
                 <span class="type-badge image">Image</span>
             <?php endif; ?>
         </div>
@@ -994,7 +999,7 @@ function openMediaDetail(card) {
     document.getElementById('detailDate').textContent = d.date;
     document.getElementById('detailAlt').value = d.alt || '';
     document.getElementById('detailCaption').value = d.caption || '';
-    document.getElementById('detailUrl').value = location.origin + d.url;
+    document.getElementById('detailUrl').value = d.fullUrl;
     document.getElementById('deleteMediaId').value = d.id;
 
     // Dimensions

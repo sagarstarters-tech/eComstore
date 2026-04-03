@@ -257,6 +257,7 @@ if ($is_success) {
 <?php endif; // end $run_test ?>
 
 <form method="POST">
+    <?php echo csrf_input(); ?>
     <div class="mb-3">
         <label class="form-label fw-bold">Test Phone Number (with country code, no +)</label>
         <input type="text" name="test_phone" class="form-control" placeholder="919876543210" value="<?= htmlspecialchars($test_phone) ?>" required>
