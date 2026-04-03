@@ -163,6 +163,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Skip interception on the Media Library page itself
+        if (window.location.pathname.includes('manage_media.php')) {
+            return;
+        }
+
         // If it's a file input, we intercept it unless bypassClick is true
         if(!bypassClick) {
             e.preventDefault();
