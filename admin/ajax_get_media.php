@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
 }
 
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$limit = 50;
+$limit = 500;
 $offset = ($page - 1) * $limit;
 
 $stmt = $conn->prepare("SELECT * FROM media_library WHERE file_type = 'image' ORDER BY created_at DESC LIMIT ? OFFSET ?");
@@ -29,9 +29,9 @@ $items = [];
 while ($row = $result->fetch_assoc()) {
     $items[] = [
         'id' => $row['id'],
-        'file_name' => $row['file_name'],
+        'file_name' => mb_convert_encoding($row['file_name'], 'UTF-8', 'auto'),
         'file_url' => '/' . ltrim($row['file_url'], '/'), // Ensure leading slash for absolute path from root
-        'original_name' => $row['original_name'],
+        'original_name' => mb_convert_encoding($row['original_name'], 'UTF-8', 'auto'),
     ];
 }
 
@@ -45,4 +45,4 @@ echo json_encode([
     'data' => $items,
     'total' => $total,
     'pages' => ceil($total / $limit)
-]);
+], JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);

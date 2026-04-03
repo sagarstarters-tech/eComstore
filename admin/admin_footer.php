@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <!-- Upload Source Chooser Modal -->
-<div class="modal fade" id="uploadSourceModal" tabindex="-1" aria-labelledby="uploadSourceModalLabel" aria-hidden="true">
+<div class="modal fade" id="uploadSourceModal" tabindex="-1" aria-labelledby="uploadSourceModalLabel" aria-hidden="true" style="z-index: 1065;">
   <div class="modal-dialog modal-sm modal-dialog-centered">
     <div class="modal-content rounded-4 border-0 shadow">
       <div class="modal-header border-0 pb-0">
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Media Gallery Selector Modal -->
-<div class="modal fade" id="mediaGallerySelectorModal" tabindex="-1" aria-labelledby="mediaGallerySelectorModalLabel" aria-hidden="true">
+<div class="modal fade" id="mediaGallerySelectorModal" tabindex="-1" aria-labelledby="mediaGallerySelectorModalLabel" aria-hidden="true" style="z-index: 1060;">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content rounded-4 border-0 shadow">
       <div class="modal-header">
@@ -221,11 +221,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         grid.appendChild(col);
                     });
                 } else {
-                    grid.innerHTML = `<div class="col-12 text-danger py-3 text-center">Failed to load media.</div>`;
+                    grid.innerHTML = `<div class="col-12 text-danger py-3 text-center">Failed to load media: ${data.error || 'Unknown error'}</div>`;
                 }
             })
             .catch(err => {
-                grid.innerHTML = `<div class="col-12 text-danger py-3 text-center">Error loading media.</div>`;
+                grid.innerHTML = `<div class="col-12 text-danger py-3 text-center">Error loading media: ${err.message}</div>`;
             });
     }
 
