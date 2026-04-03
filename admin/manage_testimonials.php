@@ -211,9 +211,22 @@ $res = $conn->query("SELECT * FROM testimonials ORDER BY id DESC");
 </div>
 
 <script>
-const tModal = new bootstrap.Modal(document.getElementById('testimonialModal'));
+let tModal = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal instance using MDB
+    const modalEl = document.getElementById('testimonialModal');
+    if (modalEl) {
+        tModal = new mdb.Modal(modalEl);
+    }
+});
 
 function openTestimonialModal() {
+    if (!tModal) {
+        const modalEl = document.getElementById('testimonialModal');
+        if (modalEl) tModal = new mdb.Modal(modalEl);
+        else return;
+    }
     document.getElementById('modalTitle').innerText = 'Add Testimonial';
     document.getElementById('t_id').value = '0';
     document.getElementById('t_existing_image').value = '';
@@ -226,6 +239,11 @@ function openTestimonialModal() {
 }
 
 function editTestimonial(data) {
+    if (!tModal) {
+        const modalEl = document.getElementById('testimonialModal');
+        if (modalEl) tModal = new mdb.Modal(modalEl);
+        else return;
+    }
     document.getElementById('modalTitle').innerText = 'Edit Testimonial';
     document.getElementById('t_id').value = data.id;
     document.getElementById('t_existing_image').value = data.image_url;
