@@ -244,6 +244,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 
+    // 5. Frontend Content Settings
+    if (isset($_POST['frontend_settings_update'])) {
+        $testimonial_enabled = isset($_POST['testimonial_section_enabled']) ? '1' : '0';
+        $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('testimonial_section_enabled', '$testimonial_enabled') ON DUPLICATE KEY UPDATE setting_value='$testimonial_enabled'");
+        
+        if (isset($_POST['testimonial_section_title'])) {
+            $val = $conn->real_escape_string($_POST['testimonial_section_title']);
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('testimonial_section_title', '$val') ON DUPLICATE KEY UPDATE setting_value='$val'");
+        }
+        if (isset($_POST['testimonial_section_subtitle'])) {
+            $val = $conn->real_escape_string($_POST['testimonial_section_subtitle']);
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('testimonial_section_subtitle', '$val') ON DUPLICATE KEY UPDATE setting_value='$val'");
+        }
+        if (isset($_POST['testimonial_show_count'])) {
+            $val = intval($_POST['testimonial_show_count']);
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('testimonial_show_count', '$val') ON DUPLICATE KEY UPDATE setting_value='$val'");
+        }
+    }
+
     $success = "Settings updated successfully.";
 }
 
@@ -316,6 +335,9 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
   </li>
   <li class="nav-item" role="presentation">
     <a class="nav-link fs-6 fw-bold border-0 bg-transparent <?php echo $active_tab == 'social_login' ? 'active shadow-sm bg-white rounded-top-4 text-primary border-bottom border-primary border-3' : 'text-muted'; ?>" href="?tab=social_login">Social Login</a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link fs-6 fw-bold border-0 bg-transparent <?php echo $active_tab == 'frontend' ? 'active shadow-sm bg-white rounded-top-4 text-primary border-bottom border-primary border-3' : 'text-muted'; ?>" href="?tab=frontend">Frontend Content</a>
   </li>
 </ul>
 
@@ -803,6 +825,55 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
             </div>
         </div>
     </div> <!-- End Social Login Tab -->
+
+    <!-- Frontend Content Tab -->
+    <div class="tab-pane fade <?php echo $active_tab == 'frontend' ? 'show active' : ''; ?>" id="tab-frontend" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 mb-4" style="max-width: 600px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h5 class="fw-bold m-0"><i class="fas fa-desktop me-2 text-primary"></i>Testimonials Section Control</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="manage_settings.php?tab=frontend">
+                    <?php echo csrf_input(); ?>
+                    <input type="hidden" name="action" value="update_settings">
+                    <input type="hidden" name="frontend_settings_update" value="1">
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" name="testimonial_section_enabled" id="testiEnabled" <?php echo (!isset($current_settings['testimonial_section_enabled']) || $current_settings['testimonial_section_enabled'] == '1') ? 'checked' : ''; ?>>
+                            <label class="form-check-label ms-2 fs-6 fw-bold" for="testiEnabled">Enable Testimonials Section</label>
+                        </div>
+                        <small class="text-muted d-block mt-1">Show or hide the testimonials slider on the homepage.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section Main Title</label>
+                        <input type="text" name="testimonial_section_title" class="form-control" value="<?php echo htmlspecialchars($current_settings['testimonial_section_title'] ?? 'What Our Customers Say'); ?>" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Section Subtitle</label>
+                        <input type="text" name="testimonial_section_subtitle" class="form-control" value="<?php echo htmlspecialchars($current_settings['testimonial_section_subtitle'] ?? 'Read honest reviews from people who love our products.'); ?>" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Display Count</label>
+                        <div class="input-group" style="max-width: 150px;">
+                            <input type="number" name="testimonial_show_count" class="form-control" value="<?php echo htmlspecialchars($current_settings['testimonial_show_count'] ?? '10'); ?>" min="1" max="50">
+                            <span class="input-group-text">Reviews</span>
+                        </div>
+                        <small class="text-muted">Maximum number of testimonials to show in the slider.</small>
+                    </div>
+
+                    <hr class="my-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                         <div class="text-muted small"><i class="fas fa-info-circle me-1"></i> These settings control the visible slider on the website.</div>
+                         <button type="submit" class="btn btn-primary btn-custom px-4">Update Frontend Content</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div> <!-- End Frontend Tab -->
     
     <!-- Shipping Tab -->
     <div class="tab-pane fade <?php echo $active_tab == 'shipping' ? 'show active' : ''; ?>" id="tab-shipping" role="tabpanel">

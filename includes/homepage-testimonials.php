@@ -4,19 +4,25 @@ if (!defined('HEADER_INCLUDED')) {
     die("Direct access not permitted");
 }
 
-$testimonials_q = $conn->query("SELECT * FROM testimonials ORDER BY id DESC LIMIT 10");
+$testi_enabled  = $global_settings['testimonial_section_enabled'] ?? '1';
+if ($testi_enabled == '0') return;
+
+$section_title    = $global_settings['testimonial_section_title'] ?? 'What Our Customers Say';
+$section_subtitle = $global_settings['testimonial_section_subtitle'] ?? 'Read honest reviews from people who love our products.';
+$display_count    = intval($global_settings['testimonial_show_count'] ?? 10);
+
+$testimonials_q = $conn->query("SELECT * FROM testimonials WHERE is_active = 1 ORDER BY rating DESC, id DESC LIMIT $display_count");
+
+if ($testimonials_q && $testimonials_q->num_rows > 0):
 ?>
-
-<!-- Debug: rows=<?php echo $testimonials_q ? $testimonials_q->num_rows : 'Error'; ?> -->
-
 
 <div class="container mt-5 pt-4 pb-5" data-aos="fade-up">
     <div class="text-center mb-5">
         <h2 class="montserrat fw-bold position-relative d-inline-block pb-2">
-            What Our Customers Say
+            <?php echo htmlspecialchars($section_title); ?>
             <span style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:60px; height:4px; border-radius:2px; background: linear-gradient(135deg, #667eea, #764ba2);"></span>
         </h2>
-        <p class="text-muted mt-3">Read honest reviews from people who love our products.</p>
+        <p class="text-muted mt-3"><?php echo htmlspecialchars($section_subtitle); ?></p>
     </div>
 
     <!-- Swiper CSS -->
@@ -204,3 +210,5 @@ $testimonials_q = $conn->query("SELECT * FROM testimonials ORDER BY id DESC LIMI
         });
     });
 </script>
+
+<?php endif; ?>
