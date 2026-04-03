@@ -230,6 +230,12 @@ return [
                 'url'   => 'manage_product_share.php',
                 'pages' => ['manage_product_share.php'],
             ],
+            [
+                'label' => 'Testimonials',
+                'icon'  => 'fa-comment-dots',
+                'url'   => 'manage_testimonials.php',
+                'pages' => ['manage_testimonials.php'],
+            ],
         ],
     ],
 

@@ -65,5 +65,6 @@ include 'includes/hero-slider.php';
     </div>
 </div>
 
+<?php include 'includes/homepage-testimonials.php'; ?>
 <?php include 'includes/homepage-features.php'; ?>
 <?php include 'includes/footer.php'; ?>
