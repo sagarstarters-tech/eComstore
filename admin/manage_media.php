@@ -85,6 +85,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['media_action'] ?? '') === 
     exit;
 }
 
+// ── Handle SYNC ASSETS (POST) ───────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['media_action'] ?? '') === 'sync_assets') {
+    csrf_verify();
+    $assets_dir = realpath(__DIR__ . '/../assets/images');
+    $count = 0; $skipped = 0;
+    if ($assets_dir && is_dir($assets_dir)) {
+        $files = scandir($assets_dir);
+        $stmt = $conn->prepare("INSERT INTO media_library (file_name, original_name, file_path, file_url, file_type, mime_type, file_size, width, height) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') continue;
+            $full_path = $assets_dir . '/' . $file;
+            if (!is_file($full_path)) continue;
+            
+            $rel_path = 'assets/images/' . $file;
+            $safe_rel = $conn->real_escape_string($rel_path);
+            $safe_file = $conn->real_escape_string($file);
+            $check = $conn->query("SELECT id FROM media_library WHERE file_url = '$safe_rel' OR file_name = '$safe_file'");
+            if ($check && $check->num_rows > 0) { $skipped++; continue; }
+            
+            $size = filesize($full_path);
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($full_path);
+            if (strpos($mime, 'image/') !== 0) continue;
+            
+            $info = @getimagesize($full_path);
+            $width = $info ? $info[0] : null;
+            $height = $info ? $info[1] : null;
+            $file_type = 'image';
+            
+            $stmt->bind_param('ssssssiii', $file, $file, $rel_path, $rel_path, $file_type, $mime, $size, $width, $height);
+            if ($stmt->execute()) { $count++; }
+        }
+        set_flash('success', "Sync complete. Added: $count images. Skipped (already exist): $skipped images.");
+    } else {
+        set_flash('danger', 'Assets directory not found.');
+    }
+    header('Location: manage_media.php');
+    exit;
+}
+
 // ── Fetch all media ──────────────────────────────────────────
 $filter_type = $_GET['type'] ?? 'all';
 $search_q    = trim($_GET['search'] ?? '');
@@ -685,7 +725,7 @@ $total_videos = (int)($conn->query("SELECT COUNT(*) as c FROM media_library WHER
 <!--  TOOLBAR: FILTER + SEARCH                                 -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div class="media-toolbar">
-    <div class="filter-tabs">
+    <div class="filter-tabs d-flex align-items-center">
         <a href="manage_media.php?type=all" class="<?php echo $filter_type === 'all' ? 'active' : ''; ?>">
             All <span class="badge"><?php echo $total_all; ?></span>
         </a>
@@ -695,6 +735,11 @@ $total_videos = (int)($conn->query("SELECT COUNT(*) as c FROM media_library WHER
         <a href="manage_media.php?type=video" class="<?php echo $filter_type === 'video' ? 'active' : ''; ?>">
             <i class="fas fa-video me-1"></i>Videos <span class="badge"><?php echo $total_videos; ?></span>
         </a>
+        <form method="POST" class="ms-3 m-0 p-0" onsubmit="return confirm('Sync all existing images from the assets/images folder into the Media Library?');">
+            <?php echo csrf_input(); ?>
+            <input type="hidden" name="media_action" value="sync_assets">
+            <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill"><i class="fas fa-sync-alt me-2"></i>Fetched Images</button>
+        </form>
     </div>
     <div class="media-search ms-auto">
         <form method="GET" action="manage_media.php">
