@@ -4,6 +4,19 @@
  */
 include 'admin_header.php';
 
+// Prepare DB Table if not exists
+$conn->query("CREATE TABLE IF NOT EXISTS `testimonials` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `client_name` VARCHAR(255) NOT NULL,
+    `designation` VARCHAR(255) DEFAULT NULL,
+    `testimonial` TEXT NOT NULL,
+    `rating` TINYINT(1) DEFAULT 5,
+    `image_url` VARCHAR(500) DEFAULT NULL,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
 // ── Handle Add / Edit (POST) ────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
