@@ -4,10 +4,11 @@ if (!defined('HEADER_INCLUDED')) {
     die("Direct access not permitted");
 }
 
-$testimonials_q = $conn->query("SELECT * FROM testimonials WHERE is_active = 1 ORDER BY rating DESC, id DESC LIMIT 10");
-
-if ($testimonials_q && $testimonials_q->num_rows > 0):
+$testimonials_q = $conn->query("SELECT * FROM testimonials ORDER BY id DESC LIMIT 10");
 ?>
+
+<!-- Debug: rows=<?php echo $testimonials_q ? $testimonials_q->num_rows : 'Error'; ?> -->
+
 
 <div class="container mt-5 pt-4 pb-5" data-aos="fade-up">
     <div class="text-center mb-5">
@@ -203,5 +204,3 @@ if ($testimonials_q && $testimonials_q->num_rows > 0):
         });
     });
 </script>
-
-<?php endif; ?>
