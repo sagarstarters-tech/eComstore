@@ -142,6 +142,12 @@ ErrorDocument 403 /404.php
 # 9. URL REWRITE RULES
 # ══════════════════════════════════════════════════════════════
 
+# Safe Redirect for OLD long product links to NEW short links
+RewriteRule ^product/\d{5}(\d{5})-(.*)$ /product/$2-$1 [R=301,L]
+
+# Safe Redirect for OLD long page links to NEW short links
+RewriteRule ^page/\d{5}(\d{5})-(.*)$ /page/$2-$1 [R=301,L]
+
 # Dynamic sitemap
 RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]
 
