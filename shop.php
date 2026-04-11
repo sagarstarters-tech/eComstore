@@ -12,9 +12,9 @@ if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
 // 2. Build Filters
-// Filter by category slug
+// Filter by category slug (Pretty URLs)
 if (isset($_GET['category_slug'])) {
-    $slug = $_GET['category_slug'];
+    $slug = $conn->real_escape_string($_GET['category_slug']);
     $cat_stmt = $conn->prepare("SELECT id FROM categories WHERE slug = ?");
     $cat_stmt->bind_param("s", $slug);
     $cat_stmt->execute();
@@ -24,9 +24,13 @@ if (isset($_GET['category_slug'])) {
         $whereClauses[] = "category_id = ?";
         $params[] = $cat_data['id'];
         $types .= "i";
+    } else {
+        // If slug doesn't exist, ignore results by adding a failing condition
+        $whereClauses[] = "1=0";
     }
     $cat_stmt->close();
 } elseif (isset($_GET['category']) && is_numeric($_GET['category'])) {
+    // Filter by numeric ID (Fallback)
     $whereClauses[] = "category_id = ?";
     $params[] = (int)$_GET['category'];
     $types .= "i";
@@ -34,11 +38,12 @@ if (isset($_GET['category_slug'])) {
 
 // Search
 if (isset($_GET['search']) && !empty($_GET['search'])) {
-    $search = "%" . $_GET['search'] . "%";
-    $whereClauses[] = "(name LIKE ? OR description LIKE ?)";
+    $search = "%" . $conn->real_escape_string($_GET['search']) . "%";
+    $whereClauses[] = "(name LIKE ? OR description LIKE ? OR short_description LIKE ?)";
     $params[] = $search;
     $params[] = $search;
-    $types .= "ss";
+    $params[] = $search;
+    $types .= "sss";
 }
 
 // Trending
@@ -48,8 +53,8 @@ if (isset($_GET['trending']) && $_GET['trending'] == 1) {
 
 $whereSql = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
 
-// Sorting — whitelist allowed values only
-$allowed_sorts = ['price_asc' => 'ORDER BY price ASC', 'price_desc' => 'ORDER BY price DESC', 'newest' => 'ORDER BY created_at DESC'];
+// Sorting
+$allowed_sorts = ['price_asc' => 'ORDER BY price ASC', 'price_desc' => 'ORDER BY price DESC', 'newest' => 'ORDER BY id DESC'];
 $sort_key = isset($_GET['sort']) && isset($allowed_sorts[$_GET['sort']]) ? $_GET['sort'] : 'newest';
 $orderSql = $allowed_sorts[$sort_key];
 
@@ -60,7 +65,7 @@ if (!empty($params)) {
     $count_stmt->bind_param($types, ...$params);
 }
 $count_stmt->execute();
-$total_results = $count_stmt->get_result()->fetch_assoc()['total'];
+$total_results = $count_stmt->get_result()->fetch_assoc()['total'] ?? 0;
 $total_pages = ceil($total_results / $limit);
 $count_stmt->close();
 
@@ -73,7 +78,8 @@ $stmt->bind_param($stmt_types, ...$stmt_params);
 $stmt->execute();
 $prods = $stmt->get_result();
 
-$cats = $conn->query("SELECT * FROM categories");
+$cats_stmt = $conn->query("SELECT * FROM categories ORDER BY name ASC");
+$cats = $cats_stmt;
 ?>
 
 <div class="container mt-5 mb-5">
