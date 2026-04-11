@@ -16,6 +16,12 @@ if (!defined('BASE_PATH')) {
 // SITE_URL = the subfolder prefix, e.g. "/store" on XAMPP or "" on Hostinger root
 $_site_url = rtrim(_env('SITE_URL', ''), '/');
 
+// Security Check: If it's a domain but missing protocol, use current protocol
+if ($_site_url && strpos($_site_url, '.') !== false && strpos($_site_url, '://') === false && !strpos($_site_url, '/')) {
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+    $_site_url = "$protocol://$_site_url";
+}
+
 return [
     // ── URLs ──────────────────────────────────────────────
     'site_url'       => $_site_url,
