@@ -84,12 +84,25 @@ $seoData = $seoService->getPageSeo($entity_type, $entity_id, [
 function makeAbsoluteUrl($path) {
     if (empty($path)) return '';
     
-    // TRAP: If it's already an absolute URL (starts with http), return as is
-    if (strpos($path, 'http') === 0 && filter_var($path, FILTER_VALIDATE_URL)) {
+    // 1. If path is already an absolute URL, return it
+    if (strpos($path, 'http') === 0) {
         return $path;
     }
     
-    // Determine protocol accurately
+    $cleanPath = ltrim($path, '/');
+    
+    // Determine the base filename path
+    $resourcePath = (strpos($cleanPath, '/') !== false) ? $cleanPath : 'assets/images/' . $cleanPath;
+
+    // 2. Check if SITE_URL is a full URL or just a path
+    $siteUrl = defined('SITE_URL') ? rtrim(SITE_URL, '/') : '';
+    
+    if (strpos($siteUrl, 'http') === 0) {
+        // SITE_URL is a full URL (prod setting)
+        return $siteUrl . '/' . $resourcePath;
+    }
+    
+    // 3. SITE_URL is a path prefix or empty (XAMPP setting)
     $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
     if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
         $scheme = "https";
@@ -101,27 +114,10 @@ function makeAbsoluteUrl($path) {
     }
 
     $host = $_SERVER['HTTP_HOST'];
-    $baseUrl = SITE_URL; // e.g., "" or "/store"
+    $baseUrl = $siteUrl; // e.g., "/store" or ""
     
-    // Remove leading slash from path for clean joining
-    $cleanPath = ltrim($path, '/');
-    
-    // If path contains a slash (like "assets/images/file.jpg"), it's a relative path from app root
-    if (strpos($cleanPath, '/') !== false) {
-        $finalPath = $baseUrl . '/' . $cleanPath;
-    } else {
-        // Otherwise, it's a single filename. Assume it's in assets/images/
-        $finalPath = $baseUrl . '/assets/images/' . $cleanPath;
-    }
-    
-    // Clean up multiple slashes (e.g., //assets becomes /assets)
-    // IMPORTANT: Don't let it break the protocol (http://)
-    if (strpos($finalPath, '://') !== false) {
-        $parts = explode('://', $finalPath, 2);
-        $finalPath = $parts[0] . '://' . preg_replace('#/+#', '/', $parts[1]);
-    } else {
-        $finalPath = preg_replace('#/+#', '/', '/' . $finalPath);
-    }
+    $finalPath = $baseUrl . '/' . $resourcePath;
+    $finalPath = preg_replace('#/+#', '/', '/' . $finalPath);
     
     return $scheme . "://" . $host . $finalPath;
 }
