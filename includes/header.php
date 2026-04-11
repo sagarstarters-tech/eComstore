@@ -135,7 +135,7 @@ $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "
 $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -151,6 +151,7 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     <meta property="og:description" content="<?php echo htmlspecialchars(trim($seoData['og_description'] ?? '')); ?>">
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_image_url); ?>">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="<?php echo htmlspecialchars($seoData['og_title'] ?? 'Product Image'); ?>">
