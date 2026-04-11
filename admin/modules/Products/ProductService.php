@@ -57,11 +57,7 @@ class ProductService
         if (!empty($slug)) {
             return strtolower(preg_replace('/[^a-z0-9-]+/', '-', strtolower($slug)));
         }
-        $cleanName = strtolower(preg_replace('/[^a-z0-9-]+/', '-', strtolower($name)));
-        $cleanName = trim($cleanName, '-');
-        
-        // Use a much shorter unique identifier (last 5 digits of timestamp) at the END
-        return substr($cleanName, 0, 50) . '-' . substr(time(), -5);
+        return time() . '-' . substr(preg_replace('/[^a-z0-9-]+/', '-', strtolower($name)), 0, 50);
     }
 
     /**

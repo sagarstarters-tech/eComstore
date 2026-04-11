@@ -10,9 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // If slug is empty, generate it
         if (empty($slug)) {
-            $cleanTitle = substr(preg_replace('/[^a-z0-9]+/i', '-', strtolower($title)), 0, 50);
-            $cleanTitle = trim($cleanTitle, '-');
-            $slug = $cleanTitle . '-' . substr(time(), -5);
+            $slug = time() . '-' . substr(preg_replace('/[^a-z0-9]+/i', '-', strtolower($title)), 0, 50);
         } else {
             $slug = substr(preg_replace('/[^a-z0-9]+/i', '-', strtolower($slug)), 0, 100);
         }

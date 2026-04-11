@@ -78,12 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $meta_desc = $conn->real_escape_string($_POST['meta_description'] ?? '');
         $image_fit = $conn->real_escape_string($_POST['image_fit'] ?? 'contain');
+        $slug = !empty($_POST['slug']) ? $conn->real_escape_string(strtolower(str_replace(' ', '-', preg_replace('/[^a-z0-9-]+/', '-', $_POST['slug'])))) : time() . '-' . substr(preg_replace('/[^a-z0-9-]+/', '-', strtolower($name)), 0, 50);
         $slug = $conn->real_escape_string(strtolower(str_replace(' ', '-', preg_replace('/[^a-z0-9-]+/', '-', $_POST['slug'] ?? ''))));
-        if (empty($slug)) {
-            $cleanName = substr(preg_replace('/[^a-z0-9-]+/', '-', strtolower($name)), 0, 50);
-            $cleanName = trim($cleanName, '-');
-            $slug = $cleanName . '-' . substr(time(), -5);
-        }
+        if (empty($slug)) $slug = time() . '-' . substr(preg_replace('/[^a-z0-9-]+/', '-', strtolower($name)), 0, 50);
         
         $product_type = $conn->real_escape_string($_POST['product_type'] ?? 'physical');
         $download_url = $conn->real_escape_string($_POST['download_url'] ?? '');

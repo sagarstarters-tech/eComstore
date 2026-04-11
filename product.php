@@ -14,10 +14,9 @@ if (isset($_GET['slug'])) {
     exit;
 }
 
-$result = $conn->query("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE $where");
+$result = $conn->query("SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE $where");
 
 if ($result->num_rows === 0) {
-    error_log("Product not found. Slug received: [" . ($_GET['slug'] ?? 'N/A') . "] Query: " . "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE $where");
     echo "<div class='container mt-5 py-5 text-center'><h2>Product not found</h2></div>";
     include 'includes/header.php';
     include 'includes/footer.php';
