@@ -145,11 +145,16 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     <meta property="og:type" content="<?php echo htmlspecialchars($seoData['og_type'] ?? 'website'); ?>">
     <meta property="og:title" content="<?php echo htmlspecialchars(trim($seoData['og_title'] ?? '')); ?>">
     <meta property="og:description" content="<?php echo htmlspecialchars(trim($seoData['og_description'] ?? '')); ?>">
+    <?php 
+    $ext = pathinfo($og_image_url, PATHINFO_EXTENSION);
+    $mime = 'image/jpeg';
+    if ($ext == 'png') $mime = 'image/png';
+    elseif ($ext == 'gif') $mime = 'image/gif';
+    elseif ($ext == 'webp') $mime = 'image/webp';
+    ?>
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_image_url); ?>">
-    <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="<?php echo $mime; ?>">
     <meta property="og:image:alt" content="<?php echo htmlspecialchars($seoData['og_title'] ?? 'Product Image'); ?>">
     <meta property="og:url" content="<?php echo htmlspecialchars($current_url); ?>">
     <?php if(!empty($seoData['site_name'])): ?>
