@@ -30,17 +30,8 @@ $id = $product['id'];
 $page_meta_title = $product['name'] . " - Sagar Starter's";
 $page_meta_description = !empty($product['meta_description']) ? $product['meta_description'] : (!empty($product['short_description']) ? substr(strip_tags($product['short_description']), 0, 160) : substr(strip_tags($product['description']), 0, 160));
 
-// Force Absolute URL for social sharing to avoid logo fallback
-$img_file = !empty($product['image']) ? $product['image'] : 'og_default.jpg';
-if (filter_var($img_file, FILTER_VALIDATE_URL)) {
-    $page_meta_image = $img_file;
-} else {
-    $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
-    if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') $scheme = "https";
-    $host = $_SERVER['HTTP_HOST'];
-    $baseUrl = defined('SITE_URL') ? rtrim(SITE_URL, '/') : '';
-    $page_meta_image = $scheme . "://" . $host . $baseUrl . '/assets/images/' . ltrim($img_file, '/');
-}
+// Use the robust makeAbsoluteUrl function (defined in header.php) indirectly via SEO service
+$page_meta_image = !empty($product['image']) ? $product['image'] : 'og_default.jpg';
 
 // Related Products
 $cat_id = $product['category_id'];
