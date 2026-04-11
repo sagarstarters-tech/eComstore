@@ -143,10 +143,10 @@ ErrorDocument 403 /404.php
 # ══════════════════════════════════════════════════════════════
 
 # Safe Redirect for OLD long product links to NEW short links
-RewriteRule ^product/\d{5}(\d{5})-(.*)$ /product/$2-$1 [R=301,L]
+RewriteRule ^product/[0-9]{5}([0-9]{5})-(.*)$ /product/$2-$1 [R=301,L,QSA]
 
 # Safe Redirect for OLD long page links to NEW short links
-RewriteRule ^page/\d{5}(\d{5})-(.*)$ /page/$2-$1 [R=301,L]
+RewriteRule ^page/[0-9]{5}([0-9]{5})-(.*)$ /page/$2-$1 [R=301,L,QSA]
 
 # Dynamic sitemap
 RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA]

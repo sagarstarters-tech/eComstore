@@ -53,7 +53,8 @@ include 'includes/hero-slider.php';
                             <?php else: ?>
                                 <span class="fs-5 fw-bold primary-blue"><?php echo $global_currency; ?><?php echo number_format($p['regular_price'] > 0 ? $p['regular_price'] : $p['price'], 2); ?></span>
                             <?php endif; ?>
-                            <a href="product.php?id=<?php echo $p['id']; ?>" class="btn btn-outline-primary btn-custom btn-sm"><i class="fas fa-shopping-cart text-reset me-2"></i>View</a>
+                            <?php $p_url = !empty($p['slug']) ? "product/" . $p['slug'] : "product.php?id=" . $p['id']; ?>
+                            <a href="<?php echo $p_url; ?>" class="btn btn-outline-primary btn-custom btn-sm"><i class="fas fa-shopping-cart text-reset me-2"></i>View</a>
                         </div>
                     </div>
                 </div>
