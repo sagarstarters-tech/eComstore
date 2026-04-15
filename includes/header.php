@@ -80,7 +80,9 @@ $seoData = $seoService->getPageSeo($entity_type, $entity_id, [
     'image' => $page_meta_image ?? null
 ]);
 
-// Ensure social images are absolute URLs
+/**
+ * Ensure social images are absolute URLs and use consistent protocols.
+ */
 function makeAbsoluteUrl($path) {
     if (empty($path)) return '';
     
@@ -92,28 +94,40 @@ function makeAbsoluteUrl($path) {
     $cleanPath = ltrim($path, '/');
     
     // Determine the base filename path
-    $resourcePath = (strpos($cleanPath, '/') !== false) ? $cleanPath : 'assets/images/' . $cleanPath;
-
-    // 2. Check if SITE_URL is a full URL or just a path
-    $siteUrl = defined('SITE_URL') ? rtrim(SITE_URL, '/') : '';
-    
-    if (strpos($siteUrl, 'http') === 0) {
-        // SITE_URL is a full URL (prod setting)
-        return $siteUrl . '/' . $resourcePath;
+    // If it contains a slash, assume it's already a relative path like 'assets/images/...'
+    // Otherwise, assume it's a filename intended for the default product image directory
+    if (strpos($cleanPath, '/') !== false) {
+        $resourcePath = $cleanPath;
+    } else {
+        // Fallback: If ASSETS_URL exists, try to use it, otherwise hardcode
+        $resourcePath = 'assets/images/' . $cleanPath;
     }
-    
-    // 3. SITE_URL is a path prefix or empty (XAMPP setting)
+
+    // Determine protocol and host
     $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
     if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
         $scheme = "https";
     }
     
-    // Force HTTPS on production
+    // Force HTTPS on production if defined
     if (defined('APP_ENV') && APP_ENV === 'production') {
         $scheme = "https";
     }
 
-    $host = $_SERVER['HTTP_HOST'];
+    // 2. Check if SITE_URL is a full URL or just a path
+    $siteUrl = defined('SITE_URL') ? rtrim(SITE_URL, '/') : '';
+    
+    if (strpos($siteUrl, 'http') === 0) {
+        // SITE_URL is a full URL. Swap protocol if it doesn't match current environment's security
+        $finalUrl = $siteUrl . '/' . $resourcePath;
+        if ($scheme === 'https' && strpos($finalUrl, 'http://') === 0) {
+            $finalUrl = str_replace('http://', 'https://', $finalUrl);
+        }
+        return $finalUrl;
+    }
+    
+    // 3. SITE_URL is a path prefix or empty
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $baseUrl = $siteUrl; // e.g., "/store" or ""
     
     $finalPath = $baseUrl . '/' . $resourcePath;
@@ -146,17 +160,22 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     <meta property="og:title" content="<?php echo htmlspecialchars(trim($seoData['og_title'] ?? '')); ?>">
     <meta property="og:description" content="<?php echo htmlspecialchars(trim($seoData['og_description'] ?? '')); ?>">
     <?php 
-    $ext = pathinfo($og_image_url, PATHINFO_EXTENSION);
+    $ext = strtolower(pathinfo($og_image_url, PATHINFO_EXTENSION));
     $mime = 'image/jpeg';
     if ($ext == 'png') $mime = 'image/png';
     elseif ($ext == 'gif') $mime = 'image/gif';
     elseif ($ext == 'webp') $mime = 'image/webp';
     ?>
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
+    <?php if (strpos($og_image_url, 'https://') === 0): ?>
     <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_image_url); ?>">
+    <?php endif; ?>
     <meta property="og:image:type" content="<?php echo $mime; ?>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="<?php echo htmlspecialchars($seoData['og_title'] ?? 'Product Image'); ?>">
     <meta property="og:url" content="<?php echo htmlspecialchars($current_url); ?>">
+    <meta property="fb:app_id" content=""> 
     <?php if(!empty($seoData['site_name'])): ?>
     <meta property="og:site_name" content="<?php echo htmlspecialchars($seoData['site_name']); ?>">
     <?php endif; ?>

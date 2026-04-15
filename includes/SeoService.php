@@ -78,17 +78,29 @@ class SeoService {
      * Generate JSON-LD Product Schema.
      */
     public function generateProductSchema($product) {
+        $baseUrl = defined('SITE_URL') ? SITE_URL : '';
+        $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : '/assets';
+        
+        // Ensure assetsUrl is used correctly relative to baseUrl
+        if (strpos($assetsUrl, 'http') !== 0) {
+            $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $assetsUrl = $scheme . "://" . $host . (strpos($assetsUrl, '/') === 0 ? '' : '/') . $assetsUrl;
+        }
+
+        $imagePath = isset($product['image']) ? $assetsUrl . "/images/" . $product['image'] : "";
+
         $schema = [
             "@context" => "https://schema.org/",
             "@type" => "Product",
             "name" => $product['name'],
-            "image" => isset($product['image']) ? "https://" . $_SERVER['HTTP_HOST'] . (defined('ASSETS_URL') ? ASSETS_URL : '/assets') . "/images/" . $product['image'] : "",
-            "description" => strip_tags($product['description']),
+            "image" => $imagePath,
+            "description" => isset($product['description']) ? strip_tags($product['description']) : "",
             "offers" => [
                 "@type" => "Offer",
                 "priceCurrency" => "INR", // Assuming INR from context
-                "price" => $product['price'],
-                "availability" => ($product['stock'] > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+                "price" => $product['price'] ?? 0,
+                "availability" => (isset($product['stock']) && $product['stock'] > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
             ]
         ];
         return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
