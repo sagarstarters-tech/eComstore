@@ -16,6 +16,25 @@ if (isset($_GET['slug'])) {
 
 $result = $conn->query("SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE $where");
 
+// Fallback logic for various slug formats (Timestamped prefixes, ID suffixes, etc.)
+if ($result->num_rows === 0 && isset($_GET['slug'])) {
+    $clean_slug = $_GET['slug'];
+    
+    // 1. Try stripping a likely 10-digit timestamp prefix (e.g., 1773379418-slug)
+    $stripped_slug = preg_replace('/^\d{5,12}-/', '', $clean_slug);
+    
+    // 2. Try extracting the ID part if the slug starts with it (e.g., URL has 1773379418-slug, DB has slug-79418)
+    // We try to match by finding products whose slug contains the text part
+    $text_part = $conn->real_escape_string($stripped_slug);
+    
+    $alt_query = "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id 
+                  WHERE p.slug = '$text_part' 
+                  OR p.slug LIKE '%$text_part%' 
+                  OR p.slug LIKE '" . substr($text_part, 0, 30) . "%'
+                  LIMIT 1";
+    $result = $conn->query($alt_query);
+}
+
 if ($result->num_rows === 0) {
     echo "<div class='container mt-5 py-5 text-center'><h2>Product not found</h2></div>";
     include 'includes/header.php';

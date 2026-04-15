@@ -156,3 +156,4 @@ Stack trace:
 [11-Apr-2026 12:00:47 Asia/Kolkata] PHP Warning:  Undefined array key "HTTP_HOST" in C:\xampp\htdocs\eComstore\includes\header.php on line 131
 [11-Apr-2026 12:00:47 Asia/Kolkata] PHP Warning:  Undefined array key "REQUEST_URI" in C:\xampp\htdocs\eComstore\includes\header.php on line 131
 [11-Apr-2026 12:00:47 Asia/Kolkata] PHP Warning:  Undefined array key "REQUEST_METHOD" in C:\xampp\htdocs\eComstore\includes\footer.php on line 5
+[15-Apr-2026 16:31:30 Asia/Kolkata] PHP Warning:  Undefined array key "HTTP_HOST" in C:\xampp\htdocs\eComstore\includes\SeoService.php on line 85

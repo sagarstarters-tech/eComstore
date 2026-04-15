@@ -142,7 +142,13 @@ $twitter_image_url = makeAbsoluteUrl($seoData['twitter_image']);
 
 // Generate current canonical URL for og:url
 $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
-$current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+$current_uri = $_SERVER['REQUEST_URI'];
+$current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $current_uri;
+
+// If we are on a product page and have a valid slug, use the clean slug as canonical
+if (isset($product['slug'])) {
+    $current_url = rtrim(defined('SITE_URL') ? SITE_URL : $scheme . "://" . $_SERVER['HTTP_HOST'], '/') . "/product/" . $product['slug'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" prefix="og: http://ogp.me/ns#">
@@ -155,36 +161,34 @@ $current_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']
     <meta name="robots" content="<?php echo htmlspecialchars($seoData['robots'] ?? 'index, follow'); ?>">
     <meta itemprop="image" content="<?php echo htmlspecialchars($og_image_url); ?>">
 
-    <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="<?php echo htmlspecialchars($seoData['og_type'] ?? 'website'); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($current_url); ?>">
     <meta property="og:title" content="<?php echo htmlspecialchars(trim($seoData['og_title'] ?? '')); ?>">
     <meta property="og:description" content="<?php echo htmlspecialchars(trim($seoData['og_description'] ?? '')); ?>">
+    <meta property="og:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
+    <meta property="og:image:url" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <?php 
     $ext = strtolower(pathinfo($og_image_url, PATHINFO_EXTENSION));
     $mime = 'image/jpeg';
     if ($ext == 'png') $mime = 'image/png';
     elseif ($ext == 'gif') $mime = 'image/gif';
     elseif ($ext == 'webp') $mime = 'image/webp';
-    ?>
-    <meta property="og:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
-    <?php if (strpos($og_image_url, 'https://') === 0): ?>
+    
+    if (strpos($og_image_url, 'https://') === 0): ?>
     <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <?php endif; ?>
     <meta property="og:image:type" content="<?php echo $mime; ?>">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="<?php echo htmlspecialchars($seoData['og_title'] ?? 'Product Image'); ?>">
-    <meta property="og:url" content="<?php echo htmlspecialchars($current_url); ?>">
-    <meta property="fb:app_id" content=""> 
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars(trim($seoData['og_title'] ?? '')); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars(trim($seoData['og_description'] ?? '')); ?>">
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
+    
     <?php if(!empty($seoData['site_name'])): ?>
     <meta property="og:site_name" content="<?php echo htmlspecialchars($seoData['site_name']); ?>">
     <?php endif; ?>
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?php echo htmlspecialchars(trim($seoData['twitter_title'] ?? '')); ?>">
-    <meta name="twitter:description" content="<?php echo htmlspecialchars(trim($seoData['twitter_description'] ?? '')); ?>">
-    <meta name="twitter:image" content="<?php echo htmlspecialchars($twitter_image_url); ?>">
+    <meta property="fb:app_id" content="">
 
     <?php if (!empty($seoData['favicon'])): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo ASSETS_URL; ?>/images/<?php echo $seoData['favicon']; ?>">
