@@ -3,7 +3,7 @@ include 'includes/header.php';
 // Fetch featured categories
 $cats = $conn->query("SELECT * FROM categories LIMIT 3");
 // Fetch trending products (those marked as trending in admin)
-$prods = $conn->query("SELECT * FROM products WHERE is_trending = 1 ORDER BY id DESC LIMIT 8");
+$prods = $conn->query("SELECT * FROM products WHERE is_trending = 1 ORDER BY id DESC LIMIT 12");
 ?>
 
 <?php 
