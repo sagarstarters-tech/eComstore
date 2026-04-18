@@ -214,7 +214,7 @@ if (!empty($global_settings['hero_banner_product']) && file_exists(__DIR__ . '/a
             
             <?php
             // Fetch gallery images
-            $gallery = $conn->query("SELECT image FROM product_images WHERE product_id = $id");
+            $gallery = $conn->query("SELECT image FROM product_images WHERE product_id = $id ORDER BY position ASC, id ASC");
             if ($gallery && $gallery->num_rows > 0):
             ?>
             <div class="d-flex gap-2 overflow-auto py-2" style="white-space: nowrap;">
