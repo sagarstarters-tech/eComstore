@@ -34,6 +34,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
             echo json_encode(['success' => false, 'error' => $conn->error]);
         }
         exit;
+    } elseif ($action === 'update_gallery_order') {
+        $order = $_POST['order'] ?? [];
+        if (!empty($order)) {
+            foreach ($order as $pos => $img_id) {
+                $pos = intval($pos);
+                $img_id = intval($img_id);
+                $conn->query("UPDATE product_images SET position = $pos WHERE id = $img_id");
+            }
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'No order provided']);
+        }
+        exit;
     }
 }
 
@@ -49,6 +62,12 @@ if ($check_col && $check_col->num_rows == 0) {
 $check_features = $conn->query("SHOW COLUMNS FROM products LIKE 'features'");
 if ($check_features && $check_features->num_rows == 0) {
     $conn->query("ALTER TABLE products ADD COLUMN features TEXT AFTER description");
+}
+
+// Migration for Gallery Position
+$check_pos = $conn->query("SHOW COLUMNS FROM product_images LIKE 'position'");
+if ($check_pos && $check_pos->num_rows == 0) {
+    $conn->query("ALTER TABLE product_images ADD COLUMN position INT DEFAULT 0");
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -132,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $ext = pathinfo($_FILES['gallery']['name'][$i], PATHINFO_EXTENSION);
                         $g_image = uniqid('gal_') . '.' . $ext;
                         if (move_uploaded_file($_FILES['gallery']['tmp_name'][$i], '../assets/images/' . $g_image)) {
-                            $conn->query("INSERT INTO product_images (product_id, image) VALUES ($product_id, '$g_image')");
+                            $conn->query("INSERT INTO product_images (product_id, image, position) VALUES ($product_id, '$g_image', $i)");
                         }
                     }
                 }
@@ -223,7 +242,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $ext = pathinfo($_FILES['gallery']['name'][$i], PATHINFO_EXTENSION);
                         $g_image = uniqid('gal_') . '.' . $ext;
                         if (move_uploaded_file($_FILES['gallery']['tmp_name'][$i], '../assets/images/' . $g_image)) {
-                            $conn->query("INSERT INTO product_images (product_id, image) VALUES ($id, '$g_image')");
+                            $max_pos_q = $conn->query("SELECT MAX(position) as max_p FROM product_images WHERE product_id=$id");
+                            $max_p = ($max_pos_q && $max_pos_q->num_rows > 0) ? intval($max_pos_q->fetch_assoc()['max_p']) + 1 : 0;
+                            $conn->query("INSERT INTO product_images (product_id, image, position) VALUES ($id, '$g_image', $max_p + $i)");
                         }
                     }
                 }
@@ -266,9 +287,9 @@ $cats = $conn->query("SELECT * FROM categories");
 // Make sure categories exist to allow product addition
 $has_cats = $cats && $cats->num_rows > 0;
 
-// Fetch all gallery images and group by product
+// Fetch all gallery images and group by product (Sorted by position)
 $product_images = [];
-$pi_q = $conn->query("SELECT * FROM product_images");
+$pi_q = $conn->query("SELECT * FROM product_images ORDER BY position ASC, id ASC");
 if ($pi_q) {
     while($pi = $pi_q->fetch_assoc()) {
         $product_images[$pi['product_id']][] = $pi;
@@ -649,9 +670,10 @@ if ($seo_q) {
             <div class="row">
                 <div class="col-md-12 mb-3 border-top pt-3">
                     <label class="form-label fw-bold">Product Gallery <small class="text-muted">(Optional, Multiple)</small></label>
-                    <input type="file" name="gallery[]" multiple class="form-control" accept="image/*">
-                    <div class="form-text">Choose multiple files to add a gallery to this product. Note: Adding new images appends to the existing gallery.</div>
+                    <input type="file" id="edit_p_gallery" name="gallery[]" multiple class="form-control" accept="image/*">
+                    <div class="form-text">Choose multiple files to add a gallery to this product. Note: Adding new images appends to the existing gallery. You can drag to reorder existing images.</div>
                     <div id="edit_gallery_preview" class="d-flex flex-wrap gap-2 mt-3"></div>
+                    <div id="edit_gallery_preview_new" class="d-flex flex-wrap gap-2 mt-3"></div>
                 </div>
             </div>
         </div>
@@ -859,7 +881,9 @@ if ($seo_q) {
             <div class="row">
                 <div class="col-md-12 mb-3 border-top pt-3">
                     <label class="form-label fw-bold">Product Gallery <small class="text-muted">(Optional, Multiple)</small></label>
-                    <input type="file" name="gallery[]" multiple class="form-control" accept="image/*">
+                    <input type="file" id="add_p_gallery" name="gallery[]" multiple class="form-control" accept="image/*">
+                    <div id="add_gallery_preview" class="d-flex flex-wrap gap-2 mt-3"></div>
+                    <div class="form-text mt-2"><i class="fas fa-info-circle me-1"></i> You can drag and drop images to reorder them before saving.</div>
                 </div>
             </div>
         </div>
@@ -871,6 +895,9 @@ if ($seo_q) {
     </div>
   </div>
 </div>
+
+<!-- Load SortableJS for Drag and Drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -933,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const gallery = JSON.parse(this.dataset.gallery);
                 gallery.forEach(img => {
                     galleryHtml += `
-                        <div class="position-relative border rounded p-1" style="width: 80px; height: 80px;" id="gal_img_${img.id}">
+                        <div class="position-relative border rounded p-1" style="width: 80px; height: 80px;" id="gal_img_${img.id}" data-img-id="${img.id}">
                             <img src="<?php echo ASSETS_URL; ?>/images/${img.image}" class="w-100 h-100" style="object-fit: cover;">
                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 p-1 delete-gallery-btn" data-img-id="${img.id}" style="line-height: .8;"><i class="fas fa-times" style="font-size: 10px;"></i></button>
                         </div>
@@ -941,6 +968,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
             galleryDiv.innerHTML = galleryHtml;
+            
+            // Initialize Sortable for existing images
+            new Sortable(galleryDiv, {
+                animation: 150,
+                onEnd: function() {
+                    const order = [];
+                    galleryDiv.querySelectorAll('.position-relative').forEach(el => {
+                        if (el.dataset.imgId) order.push(el.dataset.imgId);
+                    });
+                    
+                    if (order.length > 0) {
+                        const formData = new FormData();
+                        formData.append('action', 'update_gallery_order');
+                        order.forEach((id, index) => {
+                            formData.append(`order[${index}]`, id);
+                        });
+                        
+                        fetch('manage_products.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (!data.success) console.error('Failed to update order:', data.error);
+                        });
+                    }
+                }
+            });
             
             document.querySelectorAll('.delete-gallery-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
@@ -1013,6 +1068,93 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error toggling trending status:', err);
             });
         });
+    });
+
+    // Handle New Gallery Previews and Sorting (Add & Edit Modal)
+    function setupNewGallerySorting(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        let selectedFiles = [];
+
+        input.addEventListener('change', function() {
+            const files = Array.from(this.files);
+            // Append new files to our list
+            selectedFiles = selectedFiles.concat(files);
+            renderPreviews();
+            updateInputFiles();
+        });
+
+        function renderPreviews() {
+            preview.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                const div = document.createElement('div');
+                div.className = 'position-relative border rounded p-1 new-gal-item';
+                div.style.width = '80px';
+                div.style.height = '80px';
+                div.style.cursor = 'move';
+                div.dataset.index = index;
+
+                reader.onload = function(e) {
+                    div.innerHTML = `
+                        <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
+                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 p-1 remove-new-img" data-index="${index}" style="line-height: .8;"><i class="fas fa-times" style="font-size: 10px;"></i></button>
+                    `;
+                    
+                    div.querySelector('.remove-new-img').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        selectedFiles.splice(index, 1);
+                        renderPreviews();
+                        updateInputFiles();
+                    });
+                };
+                reader.readAsDataURL(file);
+                preview.appendChild(div);
+            });
+
+            if (selectedFiles.length > 0) {
+                if (!preview.sortable) {
+                    preview.sortable = new Sortable(preview, {
+                        animation: 150,
+                        draggable: '.new-gal-item',
+                        onEnd: function() {
+                            const newOrder = [];
+                            preview.querySelectorAll('.new-gal-item').forEach(el => {
+                                newOrder.push(selectedFiles[parseInt(el.dataset.index)]);
+                            });
+                            selectedFiles = newOrder;
+                            renderPreviews();
+                            updateInputFiles();
+                        }
+                    });
+                }
+            }
+        }
+
+        function updateInputFiles() {
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => dataTransfer.items.add(file));
+            input.files = dataTransfer.files;
+        }
+
+        return {
+            reset: function() {
+                selectedFiles = [];
+                input.value = '';
+                preview.innerHTML = '';
+            }
+        };
+    }
+
+    const addGallerySort = setupNewGallerySorting('add_p_gallery', 'add_gallery_preview');
+    const editGallerySort = setupNewGallerySorting('edit_p_gallery', 'edit_gallery_preview_new');
+
+    // Reset when modals open/close to avoid state leakage
+    document.getElementById('editProductModal').addEventListener('show.mdb.modal', () => {
+        editGallerySort.reset();
+    });
+    document.getElementById('addProductModal').addEventListener('show.mdb.modal', () => {
+        addGallerySort.reset();
     });
 });
 
