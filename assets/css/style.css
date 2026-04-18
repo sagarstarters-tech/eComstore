@@ -480,6 +480,10 @@ body.dark-mode-active .footer-link:hover,
         box-shadow: none !important;
         text-align: center;
         padding-top: 0;
+        position: static !important;
+        float: none;
+        width: 100%;
+        margin-top: 0;
     }
 
     #navbarContent .dropdown-item {
