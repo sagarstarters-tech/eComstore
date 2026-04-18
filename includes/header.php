@@ -545,5 +545,30 @@ function refreshUserState() {
 }
 
 // Global initialization
-document.addEventListener('DOMContentLoaded', refreshUserState);
+document.addEventListener('DOMContentLoaded', () => {
+    refreshUserState();
+    
+    // Body Scroll Lock for Professional Mobile Shutter Menu
+    const navbarContent = document.getElementById('navbarContent');
+    if (navbarContent) {
+        navbarContent.addEventListener('show.mdb.collapse', () => {
+            document.body.style.overflow = 'hidden'; // Lock scrolling
+        });
+        navbarContent.addEventListener('hidden.mdb.collapse', () => {
+            document.body.style.overflow = ''; // Restore scrolling
+        });
+        
+        // Auto-close menu when a link is clicked
+        const navLinks = navbarContent.querySelectorAll('.nav-link:not(.dropdown-toggle)');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const isExpanded = document.querySelector('.navbar-toggler').getAttribute('aria-expanded') === 'true';
+                if (isExpanded && window.innerWidth < 992) {
+                    const collapseInstance = mdb.Collapse.getInstance(navbarContent);
+                    if(collapseInstance) collapseInstance.hide();
+                }
+            });
+        });
+    }
+});
 </script>

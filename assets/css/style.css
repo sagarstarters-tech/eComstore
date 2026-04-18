@@ -385,3 +385,139 @@ body.dark-mode-active .footer-link:hover,
 [data-mdb-theme="dark"] .footer-link:hover {
     color: #ffffff !important;
 }
+
+/* --- Professional Shutter Mobile Menu --- */
+@media (max-width: 991.98px) {
+    .navbar.sticky-top {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+        z-index: 1050;
+    }
+
+    #navbarContent {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        height: 100vh !important;
+        background: rgba(255, 255, 255, 0.98);
+        -webkit-backdrop-filter: blur(15px);
+        backdrop-filter: blur(15px);
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 2rem 1.5rem 150px 1.5rem;
+        overflow-y: auto;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        
+        /* Shutter mechanics */
+        transform-origin: top center;
+        opacity: 0;
+        visibility: hidden;
+        transform: scaleY(0);
+        transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, visibility 0.4s !important;
+        display: flex !important;
+    }
+
+    #navbarContent.show {
+        opacity: 1;
+        visibility: visible;
+        transform: scaleY(1);
+        transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, visibility 0.4s !important;
+    }
+
+    #navbarContent.collapsing {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        height: 100vh !important; /* Override MDB height calculation */
+        background: rgba(255, 255, 255, 0.98);
+        -webkit-backdrop-filter: blur(15px);
+        backdrop-filter: blur(15px);
+        padding: 2rem 1.5rem 150px 1.5rem;
+        display: flex !important;
+        flex-direction: column;
+        transform-origin: top center;
+        transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease !important;
+    }
+
+    /* Style the links inside mobile menu */
+    #navbarContent .nav-item {
+        margin-bottom: 12px;
+        opacity: 0;
+        transform: translateY(-15px);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    #navbarContent.show .nav-item {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Staggered animation */
+    #navbarContent.show .nav-item:nth-child(1) { transition-delay: 0.1s; }
+    #navbarContent.show .nav-item:nth-child(2) { transition-delay: 0.15s; }
+    #navbarContent.show .nav-item:nth-child(3) { transition-delay: 0.2s; }
+    #navbarContent.show .nav-item:nth-child(4) { transition-delay: 0.25s; }
+    #navbarContent.show .nav-item:nth-child(5) { transition-delay: 0.3s; }
+    #navbarContent.show .nav-item:nth-child(6) { transition-delay: 0.35s; }
+    #navbarContent.show .nav-item:nth-child(7) { transition-delay: 0.4s; }
+
+    #navbarContent .nav-link {
+        font-size: 1.3rem;
+        font-weight: 700;
+        text-align: center;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 15px 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    #navbarContent .dropdown-menu {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        text-align: center;
+        padding-top: 0;
+    }
+
+    #navbarContent .dropdown-item {
+        font-size: 1.1rem;
+        padding: 10px 0;
+        color: rgba(0,0,0,0.7) !important;
+    }
+
+    /* Hamburger icon to X animation */
+    .navbar-toggler i {
+        transition: transform 0.3s ease;
+    }
+    .navbar-toggler[aria-expanded="true"] i::before {
+        content: "\f00d"; /* FontAwesome times icon */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+    }
+    .navbar-toggler[aria-expanded="true"] i {
+        transform: rotate(90deg);
+    }
+}
+
+/* Dark Mode support for Shutter menu */
+@media (max-width: 991.98px) {
+    body.dark-mode-active #navbarContent,
+    [data-mdb-theme="dark"] #navbarContent,
+    body.dark-mode-active #navbarContent.collapsing,
+    [data-mdb-theme="dark"] #navbarContent.collapsing {
+        background: rgba(30, 30, 30, 0.98);
+        border-bottom: 1px solid #333;
+    }
+    body.dark-mode-active #navbarContent .nav-link,
+    [data-mdb-theme="dark"] #navbarContent .nav-link {
+        border-bottom-color: rgba(255,255,255,0.05);
+        color: #fff !important;
+    }
+    body.dark-mode-active #navbarContent .dropdown-item,
+    [data-mdb-theme="dark"] #navbarContent .dropdown-item {
+        color: rgba(255,255,255,0.7) !important;
+    }
+}
