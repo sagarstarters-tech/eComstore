@@ -1,6 +1,6 @@
 <?php
 // Handle AJAX actions before HTML output
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['delete_gallery_image', 'toggle_trending'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['delete_gallery_image', 'toggle_trending', 'update_gallery_order'])) {
     include_once __DIR__ . '/../includes/session_setup.php';
     include_once __DIR__ . '/../includes/db_connect.php';
     
