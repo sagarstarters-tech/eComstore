@@ -19,8 +19,8 @@ include 'includes/hero-slider.php';
         <div class="col-md-4" data-aos="zoom-in" data-aos-delay="<?php echo $delay; $delay+=100; ?>">
             <div class="card product-card text-white">
                 <img src="<?php echo !empty($c['image']) ? htmlspecialchars(ASSETS_URL . '/images/' . $c['image']) : 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=600'; ?>" class="card-img" alt="<?php echo htmlspecialchars($c['name']); ?>" loading="lazy" style="height: 300px; object-fit: cover; filter: brightness(0.85);">
-                <div class="card-img-overlay d-flex flex-column justify-content-end align-items-start p-4" style="background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);">
-                    <h3 class="card-title fw-bold montserrat text-white mb-3 text-shadow"><?php echo htmlspecialchars($c['name']); ?></h3>
+                <div class="card-img-overlay d-flex flex-column justify-content-end align-items-start p-4" style="background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 40%, transparent 100%); z-index: 1;">
+                    <h3 class="card-title fw-bold montserrat mb-3" style="color: #ffffff !important; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); font-size: 1.4rem; z-index: 2;"><?php echo htmlspecialchars($c['name']); ?></h3>
                     <a href="shop.php?category=<?php echo $c['id']; ?>" class="btn btn-light btn-custom">View Products</a>
                 </div>
             </div>
