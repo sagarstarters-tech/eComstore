@@ -474,7 +474,8 @@ body.dark-mode-active .footer-link:hover,
         letter-spacing: 1px;
     }
 
-    #navbarContent .dropdown-menu {
+    #navbarContent .dropdown-menu,
+    #navbarContent .dropdown-menu.show {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -484,6 +485,7 @@ body.dark-mode-active .footer-link:hover,
         float: none;
         width: 100%;
         margin-top: 0;
+        transform: none !important;
     }
 
     #navbarContent .dropdown-item {
