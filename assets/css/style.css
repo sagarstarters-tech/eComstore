@@ -466,7 +466,7 @@ body.dark-mode-active .footer-link:hover,
     #navbarContent.show .nav-item:nth-child(7) { transition-delay: 0.4s; }
 
     #navbarContent .nav-link {
-        font-size: 1.3rem;
+        font-size: 1.15rem; /* Reduced from 1.3rem */
         font-weight: 700;
         text-align: left;
         border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -490,7 +490,7 @@ body.dark-mode-active .footer-link:hover,
     }
 
     #navbarContent .dropdown-item {
-        font-size: 1.1rem;
+        font-size: 0.95rem; /* Reduced from 1.1rem */
         padding: 10px 0;
         color: rgba(0,0,0,0.7) !important;
     }
