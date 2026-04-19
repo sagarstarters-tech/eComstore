@@ -53,7 +53,7 @@
                         </a>
                     </div>
                     <?php endif; ?>
-                    <p class="text-center mt-3">Don't have an account? <a href="signup.php">Sign up here</a></p>
+                    <p class="text-center mt-3">Don't have an account? <a href="signup.php" class="bg-warning text-dark px-2 py-1 rounded fw-bold shadow-sm" style="text-decoration: none;">Sign up here</a></p>
                 </div>
             </div>
         </div>
