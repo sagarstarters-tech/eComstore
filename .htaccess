@@ -8,9 +8,6 @@ RewriteBase /
     SetEnvIf User-Agent "facebookexternalhit" allowed_bot
     SetEnvIf User-Agent "Facebot" allowed_bot
     SetEnvIf User-Agent "WhatsApp" allowed_bot
-    SetEnvIf User-Agent "Twitterbot" allowed_bot
-    SetEnvIf User-Agent "LinkedInBot" allowed_bot
-    SetEnvIf User-Agent "Googlebot" allowed_bot
 </IfModule>
 
 # Allow whitelisted bots through any security module
@@ -18,6 +15,14 @@ RewriteBase /
     <If "env('allowed_bot')">
         Require all granted
     </If>
+</IfModule>
+
+<IfModule mod_security.c>
+    SecFilterEngine Off
+    SecFilterScanPOST Off
+</IfModule>
+<IfModule mod_security2.c>
+    SecRuleEngine Off
 </IfModule>
 
 
