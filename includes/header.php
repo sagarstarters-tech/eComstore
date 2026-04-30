@@ -140,6 +140,29 @@ $og_image_url = makeAbsoluteUrl($seoData['og_image']);
 $twitter_image_url = makeAbsoluteUrl($seoData['twitter_image']);
 // DEBUG: error_log("SEO Debug: OG Image=$og_image_url");
 
+// Auto-detect OG image dimensions for Facebook compatibility
+$og_image_width = 1200;  // Default fallback
+$og_image_height = 630;  // Default fallback
+if (!empty($seoData['og_image'])) {
+    $img_raw = $seoData['og_image'];
+    // Build local file path from the image reference
+    if (strpos($img_raw, 'http') !== 0) {
+        $clean = ltrim($img_raw, '/');
+        if (strpos($clean, '/') !== false) {
+            $local_img_path = __DIR__ . '/../' . $clean;
+        } else {
+            $local_img_path = __DIR__ . '/../assets/images/' . $clean;
+        }
+        if (file_exists($local_img_path)) {
+            $img_size = @getimagesize($local_img_path);
+            if ($img_size && $img_size[0] >= 200 && $img_size[1] >= 200) {
+                $og_image_width = $img_size[0];
+                $og_image_height = $img_size[1];
+            }
+        }
+    }
+}
+
 // Generate current canonical URL for og:url
 $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
 $current_uri = $_SERVER['REQUEST_URI'];
@@ -178,6 +201,8 @@ if (isset($product['slug'])) {
     <meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <?php endif; ?>
     <meta property="og:image:type" content="<?php echo $mime; ?>">
+    <meta property="og:image:width" content="<?php echo $og_image_width; ?>">
+    <meta property="og:image:height" content="<?php echo $og_image_height; ?>">
     <meta property="og:image:alt" content="<?php echo htmlspecialchars($seoData['og_title'] ?? 'Product Image'); ?>">
     
     <meta name="twitter:card" content="summary_large_image">

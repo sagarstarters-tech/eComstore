@@ -158,9 +158,13 @@ RewriteRule ^page/([^/]+)/?$ page.php?slug=$1 [L,QSA]
 # RewriteRule ^track/([^/]+)/([^/]+)/?$ track_order.php?order_id=$1&email=$2 [L,QSA]
 
 # ══════════════════════════════════════════════════════════════
-# 10. BLOCK BAD BOTS & SCANNERS
+# 10. BLOCK BAD BOTS & SCANNERS (whitelist social crawlers first)
 # ══════════════════════════════════════════════════════════════
 <IfModule mod_rewrite.c>
+    # Allow Facebook & WhatsApp crawlers (needed for OG image previews)
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp) [NC]
+    RewriteRule .* - [L]
+
     RewriteCond %{HTTP_USER_AGENT} (libwww-perl|wget|python|nikto|curl|scan|java|winhttp|clshttp|loader) [NC,OR]
     RewriteCond %{HTTP_USER_AGENT} (<|>|'|%0A|%0D|%27|%3C|%3E|%00) [NC]
     RewriteRule .* - [F,L]
