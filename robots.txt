@@ -1,3 +1,13 @@
+# Facebook & WhatsApp crawlers - Allow all (required for OG image previews)
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
 User-agent: *
 Disallow: /admin/
 Disallow: /includes/
