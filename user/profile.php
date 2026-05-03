@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if(isset($success)): ?>
                         <div class="alert alert-success"><?php echo $success; ?></div>
                     <?php endif; ?>
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="profileForm" autocomplete="on">
                         <?php echo csrf_field(); ?>
                         <div class="mb-4 text-center">
                             <label for="profile_photo" class="form-label d-block text-start">Profile Photo</label>
@@ -137,40 +137,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">Full Name</label>
-                                <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($user['name']); ?>" required>
+                                <label class="form-label" for="profile_name">Full Name</label>
+                                <input type="text" name="name" id="profile_name" class="form-control" autocomplete="name" value="<?php echo htmlspecialchars($user['name']); ?>" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['email']); ?>" disabled>
+                                <label class="form-label" for="profile_email">Email</label>
+                                <input type="email" id="profile_email" class="form-control" autocomplete="email" value="<?php echo htmlspecialchars($user['email']); ?>" disabled>
                             </div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">Phone Number</label>
+                                <label class="form-label" for="profile_phone">Phone Number</label>
                                 <?php echo render_phone_input('phone', $user['phone'] ?? '', true); ?>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Zip Code</label>
-                                <input type="text" name="zip_code" class="form-control" value="<?php echo htmlspecialchars($user['zip_code'] ?? ''); ?>">
+                                <label class="form-label" for="profile_zip">Zip / Pincode</label>
+                                <input type="text" name="zip_code" id="profile_zip" class="form-control" autocomplete="postal-code" inputmode="numeric" value="<?php echo htmlspecialchars($user['zip_code'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <input type="text" name="address" class="form-control" value="<?php echo htmlspecialchars($user['address'] ?? ''); ?>">
+                            <label class="form-label" for="profile_address">Address</label>
+                            <input type="text" name="address" id="profile_address" class="form-control" autocomplete="street-address" value="<?php echo htmlspecialchars($user['address'] ?? ''); ?>">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control" value="<?php echo htmlspecialchars($user['city'] ?? ''); ?>">
+                            <label class="form-label" for="profile_city">City</label>
+                            <input type="text" name="city" id="profile_city" class="form-control" autocomplete="address-level2" value="<?php echo htmlspecialchars($user['city'] ?? ''); ?>">
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">State/Province</label>
-                                <input type="text" name="state" class="form-control" value="<?php echo htmlspecialchars($user['state'] ?? ''); ?>">
+                                <label class="form-label" for="profile_state">State/Province</label>
+                                <input type="text" name="state" id="profile_state" class="form-control" autocomplete="address-level1" value="<?php echo htmlspecialchars($user['state'] ?? ''); ?>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Country</label>
-                                <input type="text" name="country" class="form-control" value="<?php echo htmlspecialchars($user['country'] ?? ''); ?>">
+                                <label class="form-label" for="profile_country">Country</label>
+                                <input type="text" name="country" id="profile_country" class="form-control" autocomplete="country-name" value="<?php echo htmlspecialchars($user['country'] ?? ''); ?>">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-custom px-4 mt-2">Save Changes</button>
@@ -180,4 +180,161 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
+<!-- Smart Profile: Autofill Detection & AJAX Auto-Save -->
+<script>
+(function() {
+    'use strict';
+
+    var CSRF_TOKEN = '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>';
+    var SAVE_URL = 'ajax_update_profile.php';
+
+    // Track initial server values to avoid saving unchanged data
+    var initialValues = {};
+    var FIELDS = [
+        {id: 'profile_name',    key: 'name'},
+        {id: 'profile_address', key: 'address'},
+        {id: 'profile_city',    key: 'city'},
+        {id: 'profile_state',   key: 'state'},
+        {id: 'profile_country', key: 'country'},
+        {id: 'profile_zip',     key: 'zip_code'}
+    ];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Capture initial values
+        FIELDS.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            if (el) initialValues[f.key] = el.value.trim();
+        });
+        var phoneEl = document.querySelector('#profileForm .phone-hidden-final');
+        if (phoneEl) initialValues['phone'] = phoneEl.value.trim();
+
+        // ── Autofill Detection via Polling ──
+        // Chrome applies :-webkit-autofill pseudo-class with a special background
+        var autofillDetected = false;
+        var pollCount = 0;
+        var pollInterval = setInterval(function() {
+            pollCount++;
+            if (pollCount > 30 || autofillDetected) { // Stop after 3 seconds
+                clearInterval(pollInterval);
+                return;
+            }
+
+            FIELDS.forEach(function(f) {
+                var el = document.getElementById(f.id);
+                if (!el) return;
+                var newVal = el.value.trim();
+                if (newVal && newVal !== initialValues[f.key]) {
+                    autofillDetected = true;
+                }
+            });
+
+            if (autofillDetected) {
+                clearInterval(pollInterval);
+                debouncedSave();
+            }
+        }, 100);
+
+        // ── Debounced Auto-Save ──
+        var saveTimer = null;
+        function debouncedSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(doAutoSave, 1500);
+        }
+
+        function doAutoSave() {
+            var data = new FormData();
+            data.append('csrf_token', CSRF_TOKEN);
+            var hasChanges = false;
+
+            FIELDS.forEach(function(f) {
+                var el = document.getElementById(f.id);
+                if (!el) return;
+                var val = el.value.trim();
+                if (val && val !== initialValues[f.key]) {
+                    data.append(f.key, val);
+                    hasChanges = true;
+                }
+            });
+
+            // Phone
+            var phoneHidden = document.querySelector('#profileForm .phone-hidden-final');
+            if (phoneHidden) {
+                var phoneVal = phoneHidden.value.trim();
+                if (phoneVal && phoneVal !== initialValues['phone']) {
+                    data.append('phone', phoneVal);
+                    hasChanges = true;
+                }
+            }
+
+            if (!hasChanges) return;
+
+            fetch(SAVE_URL, {
+                method: 'POST',
+                body: data
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                if (resp.success && resp.updated_count > 0) {
+                    showAutoSaveToast('Details detected and saved automatically');
+                    // Update initial values so we don't re-save
+                    FIELDS.forEach(function(f) {
+                        var el = document.getElementById(f.id);
+                        if (el) initialValues[f.key] = el.value.trim();
+                    });
+                    if (phoneHidden) initialValues['phone'] = phoneHidden.value.trim();
+                }
+            })
+            .catch(function() { /* silent fail for auto-save */ });
+        }
+
+        // ── Listen for manual input/change events ──
+        FIELDS.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            if (el) {
+                el.addEventListener('input', debouncedSave);
+                el.addEventListener('change', debouncedSave);
+            }
+        });
+
+        // Phone field change
+        var phoneMainInput = document.querySelector('#profileForm .phone-main-input');
+        if (phoneMainInput) {
+            phoneMainInput.addEventListener('input', debouncedSave);
+            phoneMainInput.addEventListener('change', debouncedSave);
+        }
+        var phoneCodeSelect = document.querySelector('#profileForm .country-code-select');
+        if (phoneCodeSelect) {
+            phoneCodeSelect.addEventListener('change', debouncedSave);
+        }
+
+        // ── Toast Notification ──
+        function showAutoSaveToast(msg) {
+            var existing = document.getElementById('autosaveToast');
+            if (existing) existing.remove();
+
+            var toast = document.createElement('div');
+            toast.id = 'autosaveToast';
+            toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:12px;font-size:0.9rem;font-weight:600;color:#2e7d32;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);box-shadow:0 4px 16px rgba(0,0,0,0.12);display:flex;align-items:center;gap:8px;animation:slideInToast 0.4s ease;';
+            toast.innerHTML = '<i class="fas fa-check-circle"></i> ' + msg;
+            document.body.appendChild(toast);
+
+            // Add animation keyframes if not present
+            if (!document.getElementById('toastAnimStyle')) {
+                var style = document.createElement('style');
+                style.id = 'toastAnimStyle';
+                style.textContent = '@keyframes slideInToast{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}';
+                document.head.appendChild(style);
+            }
+
+            setTimeout(function() {
+                toast.style.transition = 'opacity 0.4s ease';
+                toast.style.opacity = '0';
+                setTimeout(function() { toast.remove(); }, 400);
+            }, 3500);
+        }
+    });
+})();
+</script>
+
 <?php include '../includes/footer.php'; ?>

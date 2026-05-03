@@ -25,6 +25,40 @@ $stmt->execute();
 $user_data = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
+// ── Smart Auto-Fill: Determine data source ──────────────────────────────────
+$autofill_source = '';
+$has_saved_address = !empty($user_data['address']) && !empty($user_data['city']);
+
+if ($has_saved_address) {
+    $autofill_source = 'profile'; // User has saved address in profile
+} else {
+    // Fallback: Fetch address from the user's most recent completed order
+    $fallback_stmt = $conn->prepare(
+        "SELECT u.name, u.phone, u.address, u.city, u.state, u.country, u.zip_code 
+         FROM orders o 
+         JOIN users u ON o.user_id = u.id 
+         WHERE o.user_id = ? AND o.status NOT IN ('cancelled') 
+         ORDER BY o.id DESC LIMIT 1"
+    );
+    $fallback_stmt->bind_param("i", $user_id);
+    $fallback_stmt->execute();
+    $fallback_data = $fallback_stmt->get_result()->fetch_assoc();
+    $fallback_stmt->close();
+
+    // Since checkout updates user record on submit, the user record itself 
+    // may have been updated by a previous order. Re-check after query.
+    if ($fallback_data && !empty($fallback_data['address']) && !empty($fallback_data['city'])) {
+        // Merge fallback data into user_data for empty fields only
+        foreach (['name', 'phone', 'address', 'city', 'state', 'country', 'zip_code'] as $field) {
+            if (empty($user_data[$field]) && !empty($fallback_data[$field])) {
+                $user_data[$field] = $fallback_data[$field];
+            }
+        }
+        $autofill_source = 'previous_order';
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 $cart_items = [];
 $subtotal = 0;
 if (!empty($_SESSION['cart'])) {
@@ -286,7 +320,22 @@ include 'includes/header.php';
         <div class="col-lg-8 mb-4">
             <div class="card product-card border-0 shadow-sm p-4">
                 <h4 class="mb-4 fw-bold">Billing Details</h4>
-                <form method="POST" id="checkoutForm">
+
+                <?php if ($autofill_source): ?>
+                <div class="alert py-2 px-3 mb-4 rounded-3 border-0 d-flex align-items-center" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); color: #2e7d32;">
+                    <i class="fas fa-magic me-2"></i>
+                    <small class="fw-semibold">
+                        <?php if ($autofill_source === 'profile'): ?>
+                            Auto-filled from your saved details
+                        <?php elseif ($autofill_source === 'previous_order'): ?>
+                            Auto-filled from your previous order
+                        <?php endif; ?>
+                        <span class="text-muted fw-normal ms-1">— you can edit any field</span>
+                    </small>
+                </div>
+                <?php endif; ?>
+
+                <form method="POST" id="checkoutForm" autocomplete="on">
                     <?php echo csrf_field(); ?>
                     <?php if ($is_all_digital): ?>
                         <div class="alert alert-info py-3 mb-4 rounded-3 border-0 bg-info bg-opacity-10 text-info">
@@ -295,39 +344,39 @@ include 'includes/header.php';
                     <?php endif; ?>
 
                     <div class="mb-3">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" name="billing_name" class="form-control" value="<?php echo htmlspecialchars($user_data['name'] ?? ''); ?>" required>
+                        <label class="form-label" for="billing_name">Full Name</label>
+                        <input type="text" name="billing_name" id="billing_name" class="form-control" autocomplete="name" value="<?php echo htmlspecialchars($user_data['name'] ?? ''); ?>" required>
                     </div>
 
                     <div id="address_fields" class="<?php echo $is_all_digital ? 'd-none' : ''; ?>">
                         <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <input type="text" name="billing_address" class="form-control" value="<?php echo htmlspecialchars($user_data['address'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                            <label class="form-label" for="billing_address">Address</label>
+                            <input type="text" name="billing_address" id="billing_address" class="form-control" autocomplete="street-address" value="<?php echo htmlspecialchars($user_data['address'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">City</label>
-                            <input type="text" name="billing_city" class="form-control" value="<?php echo htmlspecialchars($user_data['city'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                            <label class="form-label" for="billing_city">City</label>
+                            <input type="text" name="billing_city" id="billing_city" class="form-control" autocomplete="address-level2" value="<?php echo htmlspecialchars($user_data['city'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">State/Province</label>
-                                <input type="text" name="billing_state" class="form-control" value="<?php echo htmlspecialchars($user_data['state'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                                <label class="form-label" for="billing_state">State/Province</label>
+                                <input type="text" name="billing_state" id="billing_state" class="form-control" autocomplete="address-level1" value="<?php echo htmlspecialchars($user_data['state'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Country</label>
-                                <input type="text" name="billing_country" class="form-control" value="<?php echo htmlspecialchars($user_data['country'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                                <label class="form-label" for="billing_country">Country</label>
+                                <input type="text" name="billing_country" id="billing_country" class="form-control" autocomplete="country-name" value="<?php echo htmlspecialchars($user_data['country'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Zip Code</label>
-                                <input type="text" name="billing_zip" class="form-control" value="<?php echo htmlspecialchars($user_data['zip_code'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
+                                <label class="form-label" for="billing_zip">Zip / Pincode</label>
+                                <input type="text" name="billing_zip" id="billing_zip" class="form-control" autocomplete="postal-code" inputmode="numeric" value="<?php echo htmlspecialchars($user_data['zip_code'] ?? ''); ?>" <?php echo $is_all_digital ? '' : 'required'; ?>>
                             </div>
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Phone</label>
+                        <label class="form-label" for="billing_phone">Phone</label>
                         <?php echo render_phone_input('billing_phone', $user_data['phone'] ?? '', true); ?>
                     </div>
 
@@ -508,5 +557,96 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?php endif; ?>
+
+<!-- Smart Checkout: localStorage Auto-Fill & Real-time Sync -->
+<script>
+(function() {
+    'use strict';
+
+    var FIELDS = [
+        {id: 'billing_name',    key: 'checkout_name'},
+        {id: 'billing_address', key: 'checkout_address'},
+        {id: 'billing_city',    key: 'checkout_city'},
+        {id: 'billing_state',   key: 'checkout_state'},
+        {id: 'billing_country', key: 'checkout_country'},
+        {id: 'billing_zip',     key: 'checkout_pincode'}
+    ];
+
+    // Check if this is a successful order (clear localStorage)
+    var successAlert = document.querySelector('.alert-success');
+    if (successAlert) {
+        FIELDS.forEach(function(f) { localStorage.removeItem(f.key); });
+        localStorage.removeItem('checkout_phone');
+        return; // No need to bind events on success page
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var hasServerData = <?php echo json_encode(!empty($autofill_source)); ?>;
+
+        // ── Restore from localStorage (only for empty fields) ──
+        FIELDS.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            if (el && !el.value.trim()) {
+                var saved = localStorage.getItem(f.key);
+                if (saved) {
+                    el.value = saved;
+                }
+            }
+        });
+
+        // Restore phone from localStorage if empty
+        var phoneInput = document.querySelector('#checkoutForm .phone-main-input');
+        if (phoneInput && !phoneInput.value.trim()) {
+            var savedPhone = localStorage.getItem('checkout_phone');
+            if (savedPhone) {
+                phoneInput.value = savedPhone;
+                // Trigger the hidden field update
+                var group = phoneInput.closest('.phone-group');
+                if (group) {
+                    var code = group.querySelector('.country-code-select').value;
+                    var hidden = group.querySelector('.phone-hidden-final');
+                    if (hidden) hidden.value = code + ' ' + savedPhone;
+                }
+            }
+        }
+
+        // Show localStorage indicator if we had no server data but did restore from localStorage
+        if (!hasServerData) {
+            var anyRestored = false;
+            FIELDS.forEach(function(f) {
+                var el = document.getElementById(f.id);
+                if (el && el.value.trim() && localStorage.getItem(f.key)) {
+                    anyRestored = true;
+                }
+            });
+            if (anyRestored) {
+                var indicator = document.createElement('div');
+                indicator.className = 'alert py-2 px-3 mb-3 rounded-3 border-0 d-flex align-items-center';
+                indicator.style.cssText = 'background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); color: #1565c0;';
+                indicator.innerHTML = '<i class="fas fa-history me-2"></i><small class="fw-semibold">Restored from your previous visit <span class="text-muted fw-normal ms-1">— you can edit any field</span></small>';
+                var form = document.getElementById('checkoutForm');
+                if (form) form.insertBefore(indicator, form.firstChild.nextSibling);
+            }
+        }
+
+        // ── Real-time Save to localStorage ──
+        FIELDS.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            if (el) {
+                el.addEventListener('input', function() {
+                    localStorage.setItem(f.key, this.value);
+                });
+            }
+        });
+
+        // Save phone on input
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function() {
+                localStorage.setItem('checkout_phone', this.value);
+            });
+        }
+    });
+})();
+</script>
 
 <?php include 'includes/footer.php'; ?>

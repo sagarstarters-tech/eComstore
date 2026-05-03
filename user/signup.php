@@ -8,20 +8,20 @@
                     <?php if(isset($_SESSION['error'])): ?>
                         <div class="alert alert-danger"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
                     <?php endif; ?>
-                    <form action="../includes/auth.php" method="POST">
+                    <form action="../includes/auth.php" method="POST" autocomplete="on">
                         <input type="hidden" name="action" value="signup">
                         <?php echo csrf_field(); ?>
                         <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="name" class="form-control" required>
+                            <label class="form-label" for="signup_name">Full Name</label>
+                            <input type="text" name="name" id="signup_name" class="form-control" autocomplete="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email address</label>
-                            <input type="email" name="email" class="form-control" required>
+                            <label class="form-label" for="signup_email">Email address</label>
+                            <input type="email" name="email" id="signup_email" class="form-control" autocomplete="email" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" required>
+                            <label class="form-label" for="signup_password">Password</label>
+                            <input type="password" name="password" id="signup_password" class="form-control" autocomplete="new-password" required>
                             <div class="form-check mt-1">
                                 <input class="form-check-input show-password-toggle" type="checkbox" id="showPwSignup">
                                 <label class="form-check-label small text-muted" for="showPwSignup">Show password</label>
@@ -33,26 +33,26 @@
                                 <?php echo render_phone_input('phone', '', true); ?>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Zip Code</label>
-                                <input type="text" name="zip_code" class="form-control" required>
+                                <label class="form-label" for="signup_zip">Zip / Pincode</label>
+                                <input type="text" name="zip_code" id="signup_zip" class="form-control" autocomplete="postal-code" inputmode="numeric" required>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <input type="text" name="address" class="form-control" required>
+                            <label class="form-label" for="signup_address">Address</label>
+                            <input type="text" name="address" id="signup_address" class="form-control" autocomplete="street-address" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control" required>
+                            <label class="form-label" for="signup_city">City</label>
+                            <input type="text" name="city" id="signup_city" class="form-control" autocomplete="address-level2" required>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">State/Province</label>
-                                <input type="text" name="state" class="form-control" required>
+                                <label class="form-label" for="signup_state">State/Province</label>
+                                <input type="text" name="state" id="signup_state" class="form-control" autocomplete="address-level1" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Country</label>
-                                <input type="text" name="country" class="form-control" required>
+                                <label class="form-label" for="signup_country">Country</label>
+                                <input type="text" name="country" id="signup_country" class="form-control" autocomplete="country-name" required>
                             </div>
                         </div>
                         <div class="mb-3 form-check">

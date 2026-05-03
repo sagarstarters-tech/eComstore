@@ -201,10 +201,11 @@ function render_phone_input($name, $value = '', $required = true, $class = '', $
                 </option>
             <?php endforeach; ?>
         </select>
-        <input type="text" 
+        <input type="tel" 
                class="form-control phone-main-input" 
                value="<?php echo htmlspecialchars($phone_body); ?>" 
                placeholder="Phone Number"
+               autocomplete="tel"
                <?php echo $required ? 'required' : ''; ?>>
         <input type="hidden" name="<?php echo $name; ?>" class="phone-hidden-final" value="<?php echo htmlspecialchars($value); ?>">
     </div>

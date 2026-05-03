@@ -11,16 +11,16 @@
                     <?php if(isset($_SESSION['success'])): ?>
                         <div class="alert alert-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div>
                     <?php endif; ?>
-                    <form action="../includes/auth.php" method="POST">
+                    <form action="../includes/auth.php" method="POST" autocomplete="on">
                         <input type="hidden" name="action" value="login">
                         <?php echo csrf_field(); ?>
                         <div class="mb-3">
-                            <label class="form-label">Email address</label>
-                            <input type="email" name="email" class="form-control" required>
+                            <label class="form-label" for="login_email">Email address</label>
+                            <input type="email" name="email" id="login_email" class="form-control" autocomplete="email" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" required>
+                            <label class="form-label" for="login_password">Password</label>
+                            <input type="password" name="password" id="login_password" class="form-control" autocomplete="current-password" required>
                             <div class="form-check mt-1">
                                 <input class="form-check-input show-password-toggle" type="checkbox" id="showPwLogin">
                                 <label class="form-check-label small text-muted" for="showPwLogin">Show password</label>
