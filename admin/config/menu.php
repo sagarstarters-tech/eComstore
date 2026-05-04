@@ -59,7 +59,7 @@ return [
     [
         'label'    => 'Orders',
         'icon'     => 'fa-shopping-cart',
-        'pages'    => ['manage_orders.php', 'manage_order_tracking.php'],
+        'pages'    => ['manage_orders.php', 'manage_order_tracking.php', 'manage_cod_blacklist.php'],
         'children' => [
             [
                 'label'  => 'All Orders',
@@ -122,6 +122,12 @@ return [
                 'icon'  => 'fa-shipping-fast',
                 'url'   => 'manage_order_tracking.php',
                 'pages' => ['manage_order_tracking.php'],
+            ],
+            [
+                'label' => 'COD Blacklist',
+                'icon'  => 'fa-ban',
+                'url'   => 'manage_cod_blacklist.php',
+                'pages' => ['manage_cod_blacklist.php'],
             ],
         ],
     ],

@@ -169,6 +169,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_advance_min_order', '$cod_adv_min') ON DUPLICATE KEY UPDATE setting_value='$cod_adv_min'");
         }
         // ────────────────────────────────────────────────────────────
+
+        // ── COD Advanced Charges Settings ────────────────────────
+        if (isset($_POST['cod_default_charge'])) {
+            $val = max(0, (float)$_POST['cod_default_charge']);
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_default_charge', '$val') ON DUPLICATE KEY UPDATE setting_value='$val'");
+        }
+        if (isset($_POST['cod_charge_mode'])) {
+            $val = in_array($_POST['cod_charge_mode'], ['highest', 'sum']) ? $_POST['cod_charge_mode'] : 'highest';
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_charge_mode', '$val') ON DUPLICATE KEY UPDATE setting_value='$val'");
+        }
+        if (isset($_POST['cod_free_threshold'])) {
+            $val = max(0, (float)$_POST['cod_free_threshold']);
+            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('cod_free_threshold', '$val') ON DUPLICATE KEY UPDATE setting_value='$val'");
+        }
+        // ────────────────────────────────────────────────────────────
         
         // PhonePe Settings
         if (isset($_POST['phonepe_enabled'])) {
@@ -714,6 +729,79 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
                             fields.style.display = toggle.checked ? '' : 'none';
                         }
                     }
+                    </script>
+
+                    <!-- ── COD Charges Configuration ──────────────────────── -->
+                    <div id="cod_charges_section" class="border rounded-3 p-3 mb-3" style="background: linear-gradient(135deg, #f0fff4 0%, #e8f5e9 100%); <?php echo $cod_is_on ? '' : 'display:none;'; ?>">
+                        <h6 class="fw-bold mb-3 text-success"><i class="fas fa-money-bill-wave me-2"></i>COD Charges Configuration</h6>
+                        <div class="alert alert-success py-2 small mb-3 border-0 bg-success bg-opacity-10">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Set product-wise COD charges and free COD thresholds. Each product can have its own charge set in Product Settings.
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Default COD Charge <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><?php echo htmlspecialchars($global_currency); ?></span>
+                                    <input type="number" name="cod_default_charge" class="form-control"
+                                        value="<?php echo htmlspecialchars($current_settings['cod_default_charge'] ?? '0'); ?>"
+                                        min="0" step="0.01">
+                                </div>
+                                <small class="text-muted">Applied when a product doesn't have its own COD charge set.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Free COD Threshold</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><?php echo htmlspecialchars($global_currency); ?></span>
+                                    <input type="number" name="cod_free_threshold" class="form-control"
+                                        value="<?php echo htmlspecialchars($current_settings['cod_free_threshold'] ?? '0'); ?>"
+                                        min="0" step="0.01">
+                                </div>
+                                <small class="text-muted">If order total &ge; this amount, COD charge = &curren;0. Set 0 to disable.</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cart Charge Mode</label>
+                            <?php $charge_mode = $current_settings['cod_charge_mode'] ?? 'highest'; ?>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="cod_charge_mode" id="cod_mode_highest" value="highest" <?php echo $charge_mode === 'highest' ? 'checked' : ''; ?>>
+                                    <label class="form-check-label fw-semibold" for="cod_mode_highest">
+                                        <i class="fas fa-arrow-up me-1 text-primary"></i>Highest
+                                    </label>
+                                    <div class="form-text small">Take the highest COD charge among cart products.</div>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="cod_charge_mode" id="cod_mode_sum" value="sum" <?php echo $charge_mode === 'sum' ? 'checked' : ''; ?>>
+                                    <label class="form-check-label fw-semibold" for="cod_mode_sum">
+                                        <i class="fas fa-plus me-1 text-warning"></i>Sum
+                                    </label>
+                                    <div class="form-text small">Sum up COD charges of all cart products.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+                            <small class="text-muted"><i class="fas fa-ban me-1 text-danger"></i>Manage COD restrictions per user</small>
+                            <a href="manage_cod_blacklist.php" class="btn btn-outline-danger btn-sm btn-custom"><i class="fas fa-shield-alt me-1"></i>COD Blacklist Manager</a>
+                        </div>
+                    </div>
+
+                    <script>
+                    // Update toggleCodAdvanceSection to also toggle COD charges section
+                    (function() {
+                        var origToggle = toggleCodAdvanceSection;
+                        toggleCodAdvanceSection = function() {
+                            origToggle();
+                            var codSelect = document.getElementById('cod_enabled_select');
+                            var chargesSection = document.getElementById('cod_charges_section');
+                            if (codSelect && chargesSection) {
+                                chargesSection.style.display = (codSelect.value === '1') ? '' : 'none';
+                            }
+                        };
+                    })();
                     </script>
 
                     <hr class="my-4">

@@ -7,6 +7,7 @@ require_once 'includes/mail_functions.php';
 require_once 'shipping_module_src/src/Config/ShippingConfig.php';
 require_once 'shipping_module_src/src/Repositories/ShippingRepository.php';
 require_once 'shipping_module_src/src/Services/ShippingService.php';
+require_once 'includes/CodService.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: user/login.php");
@@ -109,6 +110,25 @@ if (isset($is_all_digital) && $is_all_digital) {
     $grand_total = $shippingCalc['grand_total'];
 }
 
+// ── COD Charges Calculation ──────────────────────────────────────────────────
+$codService = new CodService($conn, $global_settings);
+$cod_charge_result = $codService->calculateCodCharge($cart_items, $subtotal);
+$cod_charge_amount = $cod_charge_result['cod_charge'];
+$cod_charge_is_free = $cod_charge_result['is_free'];
+$cod_charge_message = $cod_charge_result['message'];
+
+// COD Blacklist Check
+$cod_blacklist_result = $codService->isBlacklisted(
+    $user_data['phone'] ?? '',
+    $user_data['email'] ?? '',
+    $_SERVER['REMOTE_ADDR'] ?? ''
+);
+$cod_is_blacklisted = $cod_blacklist_result['is_blacklisted'];
+
+// Grand total with COD charge (applied only when COD is selected — handled in POST)
+$grand_total_with_cod = $grand_total + $cod_charge_amount;
+// ────────────────────────────────────────────────────────────────────────────
+
 // ── Partial COD Config ───────────────────────────────────────────────────────
 $cod_enabled_global     = isset($global_settings['cod_enabled']) && $global_settings['cod_enabled'] == '1';
 $cod_advance_enabled    = isset($global_settings['cod_advance_enabled']) && $global_settings['cod_advance_enabled'] == '1';
@@ -118,10 +138,11 @@ $cod_advance_min_order  = (float)($global_settings['cod_advance_min_order'] ?? 0
 $is_partial_cod = $cod_enabled_global
                && $cod_advance_enabled
                && $cod_allowed_for_all
-               && ($cod_advance_min_order == 0 || $grand_total >= $cod_advance_min_order);
+               && !$cod_is_blacklisted
+               && ($cod_advance_min_order == 0 || $grand_total_with_cod >= $cod_advance_min_order);
 
-$advance_amount   = $is_partial_cod ? round($grand_total * $cod_advance_pct / 100, 2) : 0;
-$remaining_amount = $is_partial_cod ? round($grand_total - $advance_amount, 2) : 0;
+$advance_amount   = $is_partial_cod ? round($grand_total_with_cod * $cod_advance_pct / 100, 2) : 0;
+$remaining_amount = $is_partial_cod ? round($grand_total_with_cod - $advance_amount, 2) : 0;
 // ────────────────────────────────────────────────────────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -173,10 +194,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = 'pending';
         $payment_method = $_POST['payment_method'] ?? 'cod';
         
+        // Recalculate COD charge server-side for security (prevents API manipulation)
+        $final_cod_charge = 0;
+        if ($payment_method === 'cod') {
+            $server_cod = $codService->calculateCodCharge($cart_items, $subtotal);
+            $final_cod_charge = $server_cod['cod_charge'];
+            $grand_total += $final_cod_charge; // Add COD charge to grand total
+            $grand_total_with_cod = $grand_total;
+        }
+
         // Determine payment_mode for Partial COD
         $payment_mode = null;
         if ($payment_method === 'cod' && $is_partial_cod) {
             $payment_mode = 'COD_PARTIAL';
+            // Recalculate advance/remaining with COD charge included
+            $advance_amount   = round($grand_total * $cod_advance_pct / 100, 2);
+            $remaining_amount = round($grand_total - $advance_amount, 2);
         }
 
         // 1. Insert order
@@ -185,15 +218,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = null;
             try {
                 $stmt = $conn->prepare(
-                    "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO orders (user_id, total_amount, payment_method, status, advance_amount, remaining_amount, payment_mode, cod_charge_amount)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 );
             } catch (\Throwable $e) {
                 // Ignore exception, $stmt remains null to trigger fallback
             }
 
             if ($stmt) {
-                $stmt->bind_param("idssdds", $user_id, $grand_total, $payment_method, $status, $advance_amount, $remaining_amount, $payment_mode);
+                $stmt->bind_param("idssddsd", $user_id, $grand_total, $payment_method, $status, $advance_amount, $remaining_amount, $payment_mode, $final_cod_charge);
             } else {
                 // Partial COD columns may not exist — fall back to basic insert and disable partial COD for this order
                 $is_partial_cod = false;
@@ -205,12 +238,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
             }
         } else {
-            $stmt = $conn->prepare(
-                "INSERT INTO orders (user_id, total_amount, payment_method, status)
-                 VALUES (?, ?, ?, ?)"
-            );
-            if (!$stmt) throw new Exception("Database error: " . $conn->error);
-            $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
+            // Try with cod_charge_amount column
+            $stmt = null;
+            try {
+                $stmt = $conn->prepare(
+                    "INSERT INTO orders (user_id, total_amount, payment_method, status, cod_charge_amount)
+                     VALUES (?, ?, ?, ?, ?)"
+                );
+            } catch (\Throwable $e) {
+                // fallback without cod_charge_amount
+            }
+
+            if ($stmt) {
+                $stmt->bind_param("idssd", $user_id, $grand_total, $payment_method, $status, $final_cod_charge);
+            } else {
+                $stmt = $conn->prepare(
+                    "INSERT INTO orders (user_id, total_amount, payment_method, status)
+                     VALUES (?, ?, ?, ?)"
+                );
+                if (!$stmt) throw new Exception("Database error: " . $conn->error);
+                $stmt->bind_param("idss", $user_id, $grand_total, $payment_method, $status);
+            }
         }
         if (!$stmt->execute()) throw new Exception("Failed to create order: " . $stmt->error);
         $order_id = $stmt->insert_id;
@@ -402,7 +450,7 @@ include 'includes/header.php';
                     <?php endif; ?>
 
                     <?php if ($cod_enabled): ?>
-                        <?php if ($cod_allowed_for_all): ?>
+                        <?php if ($cod_allowed_for_all && !$cod_is_blacklisted): ?>
                         <div class="mb-3">
                             <div class="form-check border rounded p-3 bg-light">
                                 <input class="form-check-input ms-1" type="radio" name="payment_method" id="pay_cod" value="cod" required <?php echo !$phonepe_enabled ? 'checked' : ''; ?> onchange="updatePaymentUI()">
@@ -410,6 +458,11 @@ include 'includes/header.php';
                                     Cash On Delivery (COD)
                                     <?php if ($is_partial_cod): ?>
                                         <span class="badge bg-warning text-dark ms-2 small fw-semibold">Advance Required</span>
+                                    <?php endif; ?>
+                                    <?php if ($cod_charge_amount > 0 && !$cod_charge_is_free): ?>
+                                        <span class="badge bg-info text-white ms-2 small fw-semibold">+<?php echo $global_currency; ?><?php echo number_format($cod_charge_amount, 2); ?> charge</span>
+                                    <?php elseif ($cod_charge_is_free): ?>
+                                        <span class="badge bg-success text-white ms-2 small fw-semibold">Free COD</span>
                                     <?php endif; ?>
                                 </label>
                                 <small class="d-block text-success mt-1 ms-2"><i class="fas fa-check-circle me-1"></i> Pay with cash upon delivery.</small>
@@ -428,7 +481,7 @@ include 'includes/header.php';
                                     <div class="col-12">
                                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
                                             <span class="text-muted small fw-semibold">Order Total</span>
-                                            <span class="fw-bold"><?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?></span>
+                                            <span class="fw-bold"><?php echo $global_currency; ?><?php echo number_format($grand_total_with_cod, 2); ?></span>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
                                             <span class="text-muted small fw-semibold">
@@ -454,6 +507,13 @@ include 'includes/header.php';
                         </div>
                         <?php endif; ?>
 
+                        <?php elseif ($cod_is_blacklisted): ?>
+                        <div class="mb-4">
+                            <div class="alert alert-danger py-3 border-0 border-start border-danger border-4">
+                                <i class="fas fa-ban me-2"></i>
+                                <strong>COD Restricted:</strong> Cash on Delivery is not available for your account. Please use an online payment method.
+                            </div>
+                        </div>
                         <?php else: ?>
                         <div class="mb-4">
                             <div class="alert alert-warning py-3 border-0 border-start border-warning border-4">
@@ -504,10 +564,23 @@ include 'includes/header.php';
                     <div class="alert <?php echo $shippingCalc['shipping_metadata']['is_free'] ? 'alert-success' : 'alert-info'; ?> p-2 small mt-2 mb-3 text-center">
                         <?php echo htmlspecialchars($shippingCalc['shipping_metadata']['message']); ?>
                     </div>
+                    <!-- COD Charges Line (shown only when COD selected) -->
+                    <div id="cod_charge_sidebar" class="d-flex justify-content-between mb-2" style="display:none;">
+                        <span class="text-muted"><i class="fas fa-money-bill-wave me-1"></i>COD Charges</span>
+                        <span id="cod_charge_value" class="<?php echo $cod_charge_is_free ? 'text-success fw-bold' : ''; ?>">
+                            <?php if ($cod_charge_is_free): ?>
+                                <span class="badge bg-success text-white">Free COD</span>
+                            <?php elseif ($cod_charge_amount > 0): ?>
+                                + <?php echo $global_currency; ?><?php echo number_format($cod_charge_amount, 2); ?>
+                            <?php else: ?>
+                                <?php echo $global_currency; ?>0.00
+                            <?php endif; ?>
+                        </span>
+                    </div>
                     <hr>
                     <div class="d-flex justify-content-between fw-bold fs-5 mt-3">
                         <span>Total Amount</span>
-                        <strong class="primary-blue"><?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?></strong>
+                        <strong class="primary-blue" id="grand_total_display"><?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?></strong>
                     </div>
 
                     <?php if ($is_partial_cod): ?>
@@ -530,18 +603,30 @@ include 'includes/header.php';
     <?php endif; ?>
 </div>
 
-<?php if ($is_partial_cod): ?>
 <script>
 function updatePaymentUI() {
-    var codRadio    = document.getElementById('pay_cod');
-    var partialInfo = document.getElementById('partial_cod_info');
-    var sidebarInfo = document.getElementById('partial_cod_sidebar');
-    var placeBtn    = document.getElementById('placeOrderBtn');
+    var codRadio     = document.getElementById('pay_cod');
+    var partialInfo  = document.getElementById('partial_cod_info');
+    var sidebarInfo  = document.getElementById('partial_cod_sidebar');
+    var codChargeSb  = document.getElementById('cod_charge_sidebar');
+    var grandDisplay = document.getElementById('grand_total_display');
+    var placeBtn     = document.getElementById('placeOrderBtn');
 
-    if (!codRadio) return;
+    var isCodSelected = codRadio ? codRadio.checked : false;
 
-    var isCodSelected = codRadio.checked;
+    // COD charge line visibility
+    if (codChargeSb) codChargeSb.style.display = isCodSelected ? '' : 'none';
 
+    // Update grand total display
+    if (grandDisplay) {
+        if (isCodSelected) {
+            grandDisplay.textContent = '<?php echo $global_currency; ?><?php echo number_format($grand_total_with_cod, 2); ?>';
+        } else {
+            grandDisplay.textContent = '<?php echo $global_currency; ?><?php echo number_format($grand_total, 2); ?>';
+        }
+    }
+
+    <?php if ($is_partial_cod): ?>
     if (partialInfo) partialInfo.style.display = isCodSelected ? '' : 'none';
     if (sidebarInfo) sidebarInfo.style.display = isCodSelected ? '' : 'none';
     if (placeBtn) {
@@ -549,6 +634,7 @@ function updatePaymentUI() {
             ? '<i class="fas fa-mobile-alt me-2"></i>Pay Advance &amp; Confirm COD Order'
             : '<i class="fas fa-lock me-2"></i>Place Order';
     }
+    <?php endif; ?>
 }
 
 // Run on page load to set initial state
@@ -556,7 +642,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePaymentUI();
 });
 </script>
-<?php endif; ?>
 
 <!-- Smart Checkout: localStorage Auto-Fill & Real-time Sync -->
 <script>

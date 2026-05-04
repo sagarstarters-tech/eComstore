@@ -136,10 +136,24 @@ $stageIndex = $info['progress_stage_index'];
                             <span class="text-muted">Shipping Total</span>
                             <span class="fw-bold"><?php echo $total_shipping > 0 ? $global_currency . number_format($total_shipping, 2) : '<span class="text-success">Free</span>'; ?></span>
                         </div>
+                        <?php 
+                        $order_cod_charge = isset($order['cod_charge_amount']) ? (float)$order['cod_charge_amount'] : 0;
+                        if ($order_cod_charge > 0): 
+                        ?>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted"><i class="fas fa-money-bill-wave me-1"></i>COD Charges</span>
+                            <span class="fw-bold"><?php echo $global_currency; ?><?php echo number_format($order_cod_charge, 2); ?></span>
+                        </div>
+                        <?php elseif ($order['payment_method'] === 'cod' && $order_cod_charge == 0): ?>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted"><i class="fas fa-money-bill-wave me-1"></i>COD Charges</span>
+                            <span class="fw-bold text-success"><span class="badge bg-success bg-opacity-10 text-success border border-success">Free COD</span></span>
+                        </div>
+                        <?php endif; ?>
                         <hr class="my-2">
                         <div class="d-flex justify-content-between fw-bold fs-5">
                             <span>Order Total</span>
-                            <span class="text-primary"><?php echo $global_currency; ?><?php echo number_format($total_item_price + $total_shipping, 2); ?></span>
+                            <span class="text-primary"><?php echo $global_currency; ?><?php echo number_format($order['total_amount'], 2); ?></span>
                         </div>
                     </div>
                 </div>

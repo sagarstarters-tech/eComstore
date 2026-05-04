@@ -63,6 +63,11 @@ $check_features = $conn->query("SHOW COLUMNS FROM products LIKE 'features'");
 if ($check_features && $check_features->num_rows == 0) {
     $conn->query("ALTER TABLE products ADD COLUMN features TEXT AFTER description");
 }
+// COD charge per-product column
+$check_cod_charge = $conn->query("SHOW COLUMNS FROM products LIKE 'cod_charge'");
+if ($check_cod_charge && $check_cod_charge->num_rows == 0) {
+    $conn->query("ALTER TABLE products ADD COLUMN cod_charge DECIMAL(10,2) DEFAULT NULL COMMENT 'Per-product COD charge (NULL = use global default)'");
+}
 
 // Migration for Gallery Position
 $check_pos = $conn->query("SHOW COLUMNS FROM product_images LIKE 'position'");
@@ -92,6 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $height = floatval($_POST['height'] ?? 0);
         $cod_available = isset($_POST['cod_available']) ? 1 : 0;
         $is_trending = isset($_POST['is_trending']) ? 1 : 0;
+        $cod_charge = ($_POST['cod_charge'] !== '' && $_POST['cod_charge'] !== null) ? floatval($_POST['cod_charge']) : null;
+        $cod_charge_sql = ($cod_charge !== null) ? $cod_charge : 'NULL';
 
 
 
@@ -127,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             move_uploaded_file($_FILES['image']['tmp_name'], '../assets/images/' . $image);
         }
 
-        $sql = "INSERT INTO products (name, slug, short_description, description, features, meta_description, category_id, product_type, download_file, download_url, download_limit, download_expiry_days, regular_price, sale_price, price, sku, brand, stock, shipping_cost, weight, length, width, height, cod_available, is_trending, image, image_fit) VALUES ('$name', '$slug', '$short_desc', '$desc', '$features', '$meta_desc', $cat_id, '$product_type', '$download_file', '$download_url', $download_limit, $download_expiry, $regular_price, $sale_price, $price, '$sku', '$brand', $stock, $shipping_cost, $weight, $length, $width, $height, $cod_available, $is_trending, '$image', '$image_fit')";
+        $sql = "INSERT INTO products (name, slug, short_description, description, features, meta_description, category_id, product_type, download_file, download_url, download_limit, download_expiry_days, regular_price, sale_price, price, sku, brand, stock, shipping_cost, weight, length, width, height, cod_available, is_trending, cod_charge, image, image_fit) VALUES ('$name', '$slug', '$short_desc', '$desc', '$features', '$meta_desc', $cat_id, '$product_type', '$download_file', '$download_url', $download_limit, $download_expiry, $regular_price, $sale_price, $price, '$sku', '$brand', $stock, $shipping_cost, $weight, $length, $width, $height, $cod_available, $is_trending, $cod_charge_sql, '$image', '$image_fit')";
 
 
 
@@ -178,6 +185,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $height = floatval($_POST['height'] ?? 0);
         $cod_available = isset($_POST['cod_available']) ? 1 : 0;
         $is_trending = isset($_POST['is_trending']) ? 1 : 0;
+        $cod_charge = ($_POST['cod_charge'] !== '' && $_POST['cod_charge'] !== null) ? floatval($_POST['cod_charge']) : null;
+        $cod_charge_sql = ($cod_charge !== null) ? $cod_charge : 'NULL';
 
 
 
@@ -219,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $sql = "UPDATE products SET name='$name', slug='$slug', short_description='$short_desc', description='$desc', features='$features', meta_description='$meta_desc', category_id=$cat_id, product_type='$product_type', download_url='$download_url', download_limit=$download_limit, download_expiry_days=$download_expiry, regular_price=$regular_price, sale_price=$sale_price, price=$price, sku='$sku', brand='$brand', stock=$stock, shipping_cost=$shipping_cost, weight=$weight, length=$length, width=$width, height=$height, cod_available=$cod_available, is_trending=$is_trending, image_fit='$image_fit' $image_query $dl_file_query WHERE id=$id";
+        $sql = "UPDATE products SET name='$name', slug='$slug', short_description='$short_desc', description='$desc', features='$features', meta_description='$meta_desc', category_id=$cat_id, product_type='$product_type', download_url='$download_url', download_limit=$download_limit, download_expiry_days=$download_expiry, regular_price=$regular_price, sale_price=$sale_price, price=$price, sku='$sku', brand='$brand', stock=$stock, shipping_cost=$shipping_cost, weight=$weight, length=$length, width=$width, height=$height, cod_available=$cod_available, is_trending=$is_trending, cod_charge=$cod_charge_sql, image_fit='$image_fit' $image_query $dl_file_query WHERE id=$id";
 
 
 
@@ -428,6 +437,7 @@ if ($seo_q) {
                                         data-width="<?php echo $p['width']; ?>"
                                         data-height="<?php echo $p['height']; ?>"
                                         data-cod-available="<?php echo $p['cod_available']; ?>"
+                                        data-cod-charge="<?php echo $p['cod_charge'] ?? ''; ?>"
                                         data-is-trending="<?php echo $p['is_trending'] ?? 0; ?>"
                                         data-features="<?php echo htmlspecialchars($p['features'] ?? ''); ?>"
                                         data-image-fit="<?php echo htmlspecialchars($p['image_fit'] ?? 'cover'); ?>"
@@ -645,6 +655,14 @@ if ($seo_q) {
                                 </div>
                             </div>
                         </div>
+                        <hr class="my-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small mb-1"><i class="fas fa-money-bill-wave me-1 text-success"></i>COD Charge (<?php echo $global_currency; ?>)</label>
+                                <input type="number" step="0.01" min="0" name="cod_charge" id="edit_p_cod_charge" class="form-control" placeholder="Leave blank for default">
+                                <div class="form-text mt-1 small">Product-specific COD charge. Leave empty to use the global default.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -857,6 +875,14 @@ if ($seo_q) {
                                 </div>
                             </div>
                         </div>
+                        <hr class="my-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small mb-1"><i class="fas fa-money-bill-wave me-1 text-success"></i>COD Charge (<?php echo $global_currency; ?>)</label>
+                                <input type="number" step="0.01" min="0" name="cod_charge" class="form-control" placeholder="Leave blank for default">
+                                <div class="form-text mt-1 small">Product-specific COD charge. Leave empty to use the global default.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -914,6 +940,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('edit_p_download_expiry_days').value = this.dataset.downloadExpiry || '';
             document.getElementById('edit_p_cod_available').checked = this.dataset.codAvailable == 1;
             document.getElementById('edit_p_is_trending').checked = this.dataset.isTrending == 1;
+            document.getElementById('edit_p_cod_charge').value = this.dataset.codCharge || '';
             
             const currentDlFile = document.getElementById('edit_current_download_file');
             if (this.dataset.downloadFile) {
