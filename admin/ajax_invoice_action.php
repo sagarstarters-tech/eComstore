@@ -106,6 +106,23 @@ switch ($action) {
         echo json_encode($result);
         break;
 
+    // ── Delete invoice ──────────────────────────────────
+    case 'delete':
+        $invoice_id = intval($_POST['invoice_id'] ?? 0);
+        if (!$invoice_id) {
+            echo json_encode(['success' => false, 'error' => 'Missing invoice ID']);
+            exit;
+        }
+        $del = $conn->prepare("DELETE FROM invoices WHERE id = ?");
+        $del->bind_param("i", $invoice_id);
+        if ($del->execute() && $del->affected_rows > 0) {
+            echo json_encode(['success' => true, 'message' => 'Invoice deleted.']);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invoice not found or already deleted.']);
+        }
+        $del->close();
+        break;
+
     default:
         echo json_encode(['success' => false, 'error' => 'Invalid action']);
 }

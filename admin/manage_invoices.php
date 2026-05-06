@@ -187,6 +187,10 @@ $wa_enabled = ($wa_settings && $wa_settings['is_enabled'] == 1);
                                         <i class="fas fa-redo"></i>
                                     </button>
                                     <?php endif; ?>
+                                    <button class="btn btn-danger btn-sm btn-custom px-2" title="Delete Invoice"
+                                            onclick="deleteInvoice(<?php echo $inv['id']; ?>, this)">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -373,6 +377,29 @@ function resendWhatsApp(orderId, btn) {
         btn.disabled = false;
     })
     .catch(() => { btn.innerHTML = '<i class="fas fa-redo"></i>'; btn.disabled = false; });
+}
+
+function deleteInvoice(invoiceId, btn) {
+    if (!confirm('Are you sure you want to delete this invoice? This cannot be undone.')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    fetch('ajax_invoice_action.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=delete&invoice_id=' + invoiceId
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            btn.closest('tr').remove();
+            showAlert('success', 'Invoice deleted successfully.');
+        } else {
+            alert('Error: ' + (data.error || 'Unknown'));
+            btn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            btn.disabled = false;
+        }
+    })
+    .catch(() => { btn.innerHTML = '<i class="fas fa-trash-alt"></i>'; btn.disabled = false; });
 }
 
 function showAlert(type, msg) {
