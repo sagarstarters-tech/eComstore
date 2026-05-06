@@ -132,6 +132,14 @@ return [
         ],
     ],
 
+    // ── Invoices ──────────────────────────────────────────────
+    [
+        'label' => 'Invoices',
+        'icon'  => 'fa-file-invoice',
+        'url'   => 'manage_invoices.php',
+        'pages' => ['manage_invoices.php', 'invoice_view.php'],
+    ],
+
     // ── Customers ─────────────────────────────────────────────
     [
         'label'    => 'Customers',

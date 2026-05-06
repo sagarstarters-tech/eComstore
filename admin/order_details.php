@@ -1,5 +1,6 @@
 <?php
 include 'admin_header.php';
+require_once '../includes/InvoiceService.php';
 
 $order_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -35,6 +36,9 @@ $items_q = $conn->query("
     WHERE oi.order_id = $order_id
 ");
 
+// Invoice status
+$invoiceService = new InvoiceService($conn);
+$invoice = $invoiceService->getInvoiceByOrder($order_id);
 
 // Include tracking module logic
 require_once __DIR__ . '/../tracking_module_src/src/Config/TrackingConfig.php';
@@ -56,7 +60,8 @@ $stageIndex = $info['progress_stage_index'];
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">Order Details - #<?php echo $order_id; ?></h4>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="invoice_view.php?order_id=<?php echo $order_id; ?>" target="_blank" class="btn btn-primary btn-custom px-3" title="View Invoice"><i class="fas fa-file-invoice me-2"></i>Invoice</a>
         <a href="manage_order_tracking.php?id=<?php echo $order_id; ?>" class="btn btn-info btn-custom text-white px-3"><i class="fas fa-truck-fast me-2"></i>Manage Tracking</a>
         <a href="manage_orders.php" class="btn btn-light btn-custom border"><i class="fas fa-arrow-left me-2"></i>Back to Orders</a>
     </div>
@@ -260,7 +265,91 @@ $stageIndex = $info['progress_stage_index'];
                 </select>
             </form>
         </div>
+        
+        <!-- Invoice Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="fw-bold mb-3"><i class="fas fa-file-invoice text-primary me-2"></i>Invoice</h5>
+            <?php if ($invoice): ?>
+                <div class="mb-2">
+                    <p class="text-muted mb-0 small uppercase fw-bold">Invoice Number</p>
+                    <h6 class="fw-bold text-primary"><?php echo htmlspecialchars($invoice['invoice_number']); ?></h6>
+                </div>
+                <div class="mb-2">
+                    <p class="text-muted mb-0 small uppercase fw-bold">Invoice Date</p>
+                    <h6 class="fw-bold"><?php echo date('M d, Y', strtotime($invoice['invoice_date'])); ?></h6>
+                </div>
+                <div class="mb-3">
+                    <p class="text-muted mb-0 small uppercase fw-bold">WhatsApp Status</p>
+                    <?php if ($invoice['whatsapp_sent']): ?>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                            <i class="fab fa-whatsapp me-1"></i>Sent <?php echo $invoice['whatsapp_sent_at'] ? date('M d, H:i', strtotime($invoice['whatsapp_sent_at'])) : ''; ?>
+                        </span>
+                    <?php else: ?>
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                            <i class="fas fa-clock me-1"></i>Not Sent
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="invoice_view.php?order_id=<?php echo $order_id; ?>" target="_blank" class="btn btn-primary btn-sm btn-custom px-3">
+                        <i class="fas fa-eye me-1"></i>View
+                    </a>
+                    <button class="btn btn-success btn-sm btn-custom px-3 text-white" onclick="sendInvoiceWA(<?php echo $order_id; ?>, this)" id="invoiceWaBtn">
+                        <i class="fab fa-whatsapp me-1"></i><?php echo $invoice['whatsapp_sent'] ? 'Resend' : 'Send'; ?>
+                    </button>
+                </div>
+            <?php else: ?>
+                <p class="text-muted small mb-3">No invoice generated yet.</p>
+                <button class="btn btn-primary btn-sm btn-custom px-3" onclick="generateInvoice(<?php echo $order_id; ?>, this)">
+                    <i class="fas fa-magic me-1"></i>Generate Invoice
+                </button>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
+
+<script>
+function generateInvoice(orderId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    fetch('ajax_invoice_action.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=generate&order_id=' + orderId
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else { alert('Error: ' + data.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-magic me-1"></i>Generate Invoice'; }
+    })
+    .catch(() => { btn.disabled = false; btn.innerHTML = '<i class="fas fa-magic me-1"></i>Generate Invoice'; });
+}
+
+function sendInvoiceWA(orderId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+    const action = btn.textContent.includes('Resend') ? 'resend_whatsapp' : 'send_whatsapp';
+    fetch('ajax_invoice_action.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=' + action + '&order_id=' + orderId
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (data.sending_mode === 'web') {
+                window.open('https://wa.me/' + data.phone + '?text=' + encodeURIComponent(data.message), '_blank');
+            }
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Sent!';
+            btn.classList.replace('btn-success', 'btn-outline-success');
+        } else {
+            alert('Error: ' + (data.error || 'Unknown'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i>Send';
+        }
+    })
+    .catch(() => { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i>Send'; });
+}
+</script>
 
 <?php include 'admin_footer.php'; ?>

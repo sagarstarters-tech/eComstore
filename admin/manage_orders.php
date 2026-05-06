@@ -2,6 +2,7 @@
 include 'admin_header.php';
 require_once '../includes/mail_functions.php';
 require_once '../includes/whatsapp_functions.php';
+require_once '../includes/InvoiceService.php';
 
 // Include Tracking Module logic
 require_once '../tracking_module_src/src/Config/TrackingConfig.php';
@@ -27,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sendOrderStatusEmail($conn, $id, $user['email'], $user['name'], $status);
             // Trigger automated WhatsApp notification
             sendAutomatedWhatsApp($conn, $id);
+            // Auto-generate invoice on qualifying status change
+            $invoiceService = new InvoiceService($conn);
+            $invoiceService->autoGenerateOnStatusChange($id, $status);
         }
         
     } elseif ($action === 'delete') {
@@ -144,8 +148,10 @@ $wa_enabled = ($wa_settings && $wa_settings['is_enabled'] == 1);
                                     <a href="order_details.php?id=<?php echo $o['id']; ?>" class="btn btn-primary btn-sm btn-custom px-3 me-2" title="View Order Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    <a href="invoice_view.php?order_id=<?php echo $o['id']; ?>" target="_blank" class="btn btn-dark btn-sm btn-custom px-3 me-2" title="View Invoice">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </a>
                                     <a href="manage_order_tracking.php?id=<?php echo $o['id']; ?>" class="btn btn-info btn-sm btn-custom text-white px-3 me-2" title="Update Tracking">
-
                                         <i class="fas fa-truck-fast"></i>
                                     </a>
                                     <form method="POST" class="m-0" onsubmit="return confirm('Delete this order completely?');">
