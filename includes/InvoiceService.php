@@ -100,7 +100,7 @@ class InvoiceService
             VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, 'generated')
         ");
         $ins->bind_param(
-            "siidddddsss",
+            "siidddddss",
             $invoice_number,
             $orderId,
             $order['user_id'],
