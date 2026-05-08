@@ -70,6 +70,98 @@ include 'includes/header.php'; // Include existing store header
     /* If we want a solid color bar fill behind, we'd style a separate element, 
        but for simplicity the circles work well. */
 }
+
+/* AWB Shipment Tracking Section Styles */
+.awb-tracking-card {
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef2ff 100%);
+    border: 2px solid #dee2e6;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.awb-tracking-card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.12);
+}
+.awb-tracking-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.awb-tracking-header .icon-circle {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+.awb-tracking-header h6 {
+    color: white;
+    margin: 0;
+    font-weight: 700;
+}
+.awb-tracking-header small {
+    color: rgba(255,255,255,0.7);
+}
+.awb-number-display {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #1a1a2e;
+    background: white;
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: inline-block;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.awb-number-display:hover {
+    border-color: #0d6efd;
+    background: #f0f4ff;
+}
+.btn-track-awb {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    color: white;
+    padding: 12px 28px;
+    border-radius: 50rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+.btn-track-awb:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    color: white;
+}
+.btn-copy-awb {
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    color: #495057;
+    padding: 12px 28px;
+    border-radius: 50rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-copy-awb:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+}
+.pulse-live {
+    animation: pulseGlow 2s infinite;
+}
 </style>
 
 <div class="container my-5 py-4" style="min-height: 60vh;">

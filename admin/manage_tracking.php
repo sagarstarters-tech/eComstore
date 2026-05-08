@@ -71,7 +71,7 @@ $couriers = $repo->getActiveCouriers();
                                     <th>Total Amount</th>
                                     <th>Status</th>
                                     <th>Courier</th>
-                                    <th>Tracking #</th>
+                                    <th>Tracking # (AWB)</th>
                                     <th>Est. Delivery</th>
                                     <th>Action</th>
                                 </tr>
@@ -98,19 +98,40 @@ $couriers = $repo->getActiveCouriers();
                                             </span>
                                         </td>
                                         <td><?php echo htmlspecialchars($o['courier_name'] ?? 'N/A'); ?></td>
-                                        <td><?php echo htmlspecialchars($o['tracking_number'] ?? 'N/A'); ?></td>
-                                        <td><?php echo $o['estimated_delivery_date'] ? date('M j, Y', strtotime($o['estimated_delivery_date'])) : 'N/A'; ?></td>
                                         <td>
-                                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" 
-                                                onclick='editTracking(<?php echo htmlspecialchars(json_encode([
-                                                    "id" => $o["id"],
-                                                    "status" => $o["status"],
-                                                    "courier_id" => $o["courier_id"],
-                                                    "tracking_number" => $o["tracking_number"],
-                                                    "estimated_delivery_date" => $o["estimated_delivery_date"]
-                                                ]), ENT_QUOTES, "UTF-8"); ?>)'>
-                                                Update Info
-                                            </button>
+                                            <?php if (!empty($o['tracking_number'])): ?>
+                                                <span class="font-monospace fw-bold text-dark"><?php echo htmlspecialchars($o['tracking_number']); ?></span>
+                                                <button class="btn btn-link btn-sm p-0 ms-1 text-muted" title="Copy AWB" onclick="copyAWB('<?php echo htmlspecialchars($o['tracking_number']); ?>')">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <span class="text-muted fst-italic">Not Assigned</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?php echo $o['estimated_delivery_date'] ? date('M j, Y', strtotime($o['estimated_delivery_date'])) : 'N/A'; ?></td>
+                                        <td class="text-nowrap">
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-outline-primary btn-sm px-3" style="border-radius: 50rem 0 0 50rem;"
+                                                    onclick='editTracking(<?php echo htmlspecialchars(json_encode([
+                                                        "id" => $o["id"],
+                                                        "status" => $o["status"],
+                                                        "courier_id" => $o["courier_id"],
+                                                        "tracking_number" => $o["tracking_number"],
+                                                        "estimated_delivery_date" => $o["estimated_delivery_date"]
+                                                    ]), ENT_QUOTES, "UTF-8"); ?>)'>
+                                                    <i class="fas fa-edit me-1"></i>Update
+                                                </button>
+                                                <?php if (!empty($o['tracking_number'])): ?>
+                                                <button class="btn btn-outline-success btn-sm px-3" style="border-radius: 0 50rem 50rem 0;"
+                                                    onclick="trackAWBShipment(<?php echo $o['id']; ?>, '<?php echo htmlspecialchars($o['tracking_number']); ?>', '<?php echo htmlspecialchars($o['courier_name'] ?? ''); ?>')">
+                                                    <i class="fas fa-satellite-dish me-1"></i>Track AWB
+                                                </button>
+                                                <?php else: ?>
+                                                <button class="btn btn-outline-secondary btn-sm px-3 disabled" style="border-radius: 0 50rem 50rem 0;">
+                                                    <i class="fas fa-satellite-dish me-1"></i>No AWB
+                                                </button>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>
@@ -182,12 +203,41 @@ $couriers = $repo->getActiveCouriers();
     </div>
 </div>
 
+<!-- AWB Shipment Tracking Modal -->
+<div class="modal fade" id="awbTrackingModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-lg-down">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 bg-gradient" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fas fa-satellite-dish text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0">AWB Shipment Tracking</h5>
+                        <small class="text-white-50" id="awb_modal_subtitle">Loading...</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-mdb-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="awb_modal_body">
+                <!-- Dynamic content injected by JS -->
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                    <p class="mt-3 text-muted">Fetching shipment details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let trackingModal;
+let awbModal;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof mdb !== 'undefined') {
         trackingModal = new mdb.Modal(document.getElementById('trackingModal'));
+        awbModal = new mdb.Modal(document.getElementById('awbTrackingModal'));
     } else {
         console.error('MDB Library not loaded');
     }
@@ -204,10 +254,201 @@ function editTracking(order) {
     if (trackingModal) {
         trackingModal.show();
     } else {
-        // Fallback if modal hasn't initialized
         trackingModal = new mdb.Modal(document.getElementById('trackingModal'));
         trackingModal.show();
     }
+}
+
+/**
+ * Copy AWB number to clipboard
+ */
+function copyAWB(awb) {
+    navigator.clipboard.writeText(awb).then(() => {
+        // Show a brief toast notification
+        showToast('AWB number copied: ' + awb, 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        const input = document.createElement('input');
+        input.value = awb;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('AWB number copied: ' + awb, 'success');
+    });
+}
+
+/**
+ * Track AWB Shipment — opens tracking details in modal
+ */
+function trackAWBShipment(orderId, awb, courierName) {
+    // Update modal subtitle
+    document.getElementById('awb_modal_subtitle').textContent = 
+        `Order #${orderId} • ${courierName || 'Courier'} • AWB: ${awb}`;
+    
+    // Show loading state
+    document.getElementById('awb_modal_body').innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+            <p class="mt-3 text-muted">Fetching shipment details...</p>
+        </div>
+    `;
+    
+    // Show modal
+    if (!awbModal) awbModal = new mdb.Modal(document.getElementById('awbTrackingModal'));
+    awbModal.show();
+    
+    // Fetch AWB tracking data from our secure API
+    fetch(`../api/awb_track.php?order_id=${orderId}&admin=1`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderAWBTrackingPanel(data.data);
+            } else {
+                document.getElementById('awb_modal_body').innerHTML = `
+                    <div class="alert alert-warning m-4 rounded-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>${data.message || 'Unable to fetch tracking information.'}
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error('AWB Tracking Error:', err);
+            document.getElementById('awb_modal_body').innerHTML = `
+                <div class="alert alert-danger m-4 rounded-3">
+                    <i class="fas fa-times-circle me-2"></i>Network error occurred while fetching tracking data.
+                </div>
+            `;
+        });
+}
+
+/**
+ * Render the AWB tracking panel inside the modal
+ */
+function renderAWBTrackingPanel(data) {
+    const hasUrl = data.tracking_url && data.tracking_url.trim() !== '';
+    
+    let html = `
+        <div class="p-4">
+            <!-- AWB Info Card -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-light border-0 rounded-3 h-100">
+                        <div class="card-body text-center p-3">
+                            <div class="text-muted small mb-1"><i class="fas fa-hashtag me-1"></i>Order ID</div>
+                            <div class="fw-bold fs-5 text-dark">#${data.order_id}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light border-0 rounded-3 h-100">
+                        <div class="card-body text-center p-3">
+                            <div class="text-muted small mb-1"><i class="fas fa-truck me-1"></i>Courier</div>
+                            <div class="fw-bold fs-5 text-primary">${data.courier_name}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light border-0 rounded-3 h-100">
+                        <div class="card-body text-center p-3">
+                            <div class="text-muted small mb-1"><i class="fas fa-barcode me-1"></i>AWB Number</div>
+                            <div class="fw-bold fs-5 text-success font-monospace">${data.awb}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+                <button class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm" onclick="copyAWB('${data.awb}')">
+                    <i class="fas fa-copy me-2"></i>Copy AWB Number
+                </button>
+                ${hasUrl ? `
+                    <a href="${data.tracking_url}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-lg rounded-pill px-4 shadow-sm">
+                        <i class="fas fa-external-link-alt me-2"></i>Track on ${data.courier_name}
+                    </a>
+                ` : ''}
+            </div>
+            
+            ${hasUrl ? `
+            <!-- Embedded Tracking (iframe) -->
+            <div class="card border rounded-3 overflow-hidden">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-2">
+                    <span class="small text-muted"><i class="fas fa-globe me-1"></i>Live Tracking — ${data.courier_name}</span>
+                    <a href="${data.tracking_url}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        <i class="fas fa-expand me-1"></i>Open Full Page
+                    </a>
+                </div>
+                <div class="position-relative" style="min-height: 500px; background: #f8f9fa;">
+                    <iframe src="${data.tracking_url}" 
+                            id="awbTrackingIframe"
+                            style="width: 100%; height: 500px; border: none;"
+                            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                            loading="lazy"
+                            onload="document.getElementById('awbIframeLoader').style.display='none';"
+                            onerror="handleIframeError()">
+                    </iframe>
+                    <div id="awbIframeLoader" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(248,249,250,0.95);">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="text-muted mb-2">Loading ${data.courier_name} tracking page...</p>
+                        <p class="text-muted small">If it doesn't load, courier may block embedding.</p>
+                        <a href="${data.tracking_url}" target="_blank" class="btn btn-outline-primary btn-sm mt-2 rounded-pill">
+                            <i class="fas fa-external-link-alt me-1"></i>Open Directly Instead
+                        </a>
+                    </div>
+                </div>
+            </div>
+            ` : `
+            <div class="alert alert-info rounded-3">
+                <i class="fas fa-info-circle me-2"></i>
+                No tracking URL configured for this courier. You can still use the AWB number above to manually track on the courier's website.
+            </div>
+            `}
+        </div>
+    `;
+    
+    document.getElementById('awb_modal_body').innerHTML = html;
+    
+    // Auto-hide iframe loader after 8 seconds (fallback for X-Frame-Options block)
+    if (hasUrl) {
+        setTimeout(() => {
+            const loader = document.getElementById('awbIframeLoader');
+            if (loader) loader.style.display = 'none';
+        }, 8000);
+    }
+}
+
+/**
+ * Handle iframe load error (courier blocks embedding)
+ */
+function handleIframeError() {
+    const loader = document.getElementById('awbIframeLoader');
+    if (loader) {
+        loader.innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
+                <h6 class="fw-bold">Courier website blocked embedding</h6>
+                <p class="text-muted small">This is normal — most courier sites restrict iframe loading for security.</p>
+                <p class="text-muted small">Please use the "Track on Courier" button above to open tracking directly.</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Show a brief toast notification
+ */
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'info'} position-fixed shadow-lg border-0 rounded-3`;
+    toast.style.cssText = 'bottom: 20px; right: 20px; z-index: 99999; min-width: 250px; animation: fadeInUp 0.3s ease;';
+    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
 }
 
 function clearTrackingLogs() {
@@ -237,5 +478,34 @@ function clearTrackingLogs() {
     });
 }
 </script>
+
+<style>
+/* AWB Tracking Modal Styles */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#awbTrackingModal .modal-content {
+    overflow: hidden;
+}
+
+#awbTrackingModal .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#awbTrackingModal .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.rounded-pill-start {
+    border-radius: 50rem 0 0 50rem !important;
+}
+
+.rounded-pill-end {
+    border-radius: 0 50rem 50rem 0 !important;
+}
+</style>
 
 <?php include 'admin_footer.php'; ?>
