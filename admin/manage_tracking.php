@@ -380,7 +380,7 @@ function renderAWBTrackingPanel(data) {
                     </a>
                 </div>
                 <div class="position-relative" style="min-height: 500px; background: #f8f9fa;">
-                    <iframe src="${data.tracking_url}" 
+                    <iframe src="https://t.17track.net/en#nums=${data.awb}" 
                             id="awbTrackingIframe"
                             style="width: 100%; height: 500px; border: none;"
                             sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
