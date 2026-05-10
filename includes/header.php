@@ -194,7 +194,8 @@ if (isset($product['slug'])) {
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <meta property="og:image:url" content="<?php echo htmlspecialchars($og_image_url); ?>">
     <?php 
-    $ext = strtolower(pathinfo($og_image_url, PATHINFO_EXTENSION));
+    $clean_url = strtok($og_image_url, '?');
+    $ext = strtolower(pathinfo($clean_url, PATHINFO_EXTENSION));
     $mime = 'image/jpeg';
     if ($ext == 'png') $mime = 'image/png';
     elseif ($ext == 'gif') $mime = 'image/gif';
