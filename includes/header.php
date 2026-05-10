@@ -159,6 +159,9 @@ if (!empty($seoData['og_image'])) {
                 $og_image_width = $img_size[0];
                 $og_image_height = $img_size[1];
             }
+            $v = filemtime($local_img_path);
+            if (!empty($og_image_url) && strpos($og_image_url, '?') === false) $og_image_url .= "?v=" . $v;
+            if (!empty($twitter_image_url) && strpos($twitter_image_url, '?') === false) $twitter_image_url .= "?v=" . $v;
         }
     }
 }
