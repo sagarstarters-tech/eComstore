@@ -171,7 +171,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $limiter->reset();
+                
+                // Save guest cart BEFORE regenerating session
+                $guest_cart = isset($_SESSION['cart']) && is_array($_SESSION['cart']) ? $_SESSION['cart'] : [];
+                
                 session_regenerate_id(true); // Prevent Session Fixation
+                
+                // Clear any stale cart data from previous sessions
+                unset($_SESSION['cart']);
                 
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['name'] = $user['name'];
@@ -185,8 +192,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($_SESSION['needs_profile_update']);
                 }
 
+                // Temporarily set guest cart so load_cart_from_db can merge new guest items
+                $_SESSION['cart'] = $guest_cart;
                 
-                // Re-populate and sync cart items internally on valid login sequence
+                // Load cart from DB (source of truth) + merge any new guest items
                 load_cart_from_db($conn, $user['id']);
                 
                 if ($user['role'] === 'admin') {
@@ -208,19 +217,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Handle GET actions like logout
 if (isset($_GET['action'])) {
     if ($_GET['action'] === 'logout') {
-        // Sync cart to DB before destroying session so deleted items stay deleted
+        // 1. Sync current cart state to DB before logout
         if (isset($_SESSION['user_id'])) {
             sync_cart_to_db($conn);
         }
         
+        // 2. Explicitly clear all session variables
+        $_SESSION = [];
+        
+        // 3. Delete session cookie — try multiple domain variants to ensure cleanup
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
+            $sess_name = session_name();
+            
+            // Clear with exact params
+            setcookie($sess_name, '', time() - 42000,
                 $params["path"], $params["domain"],
                 $params["secure"], $params["httponly"]
             );
+            
+            // Also clear without domain (covers same-domain-only cookies)
+            setcookie($sess_name, '', time() - 42000, $params["path"]);
+            
+            // Also clear for parent domain with dot prefix
+            $host = $_SERVER['HTTP_HOST'] ?? '';
+            if (strpos($host, ':') !== false) {
+                $host = substr($host, 0, strpos($host, ':'));
+            }
+            if ($host !== 'localhost' && !filter_var($host, FILTER_VALIDATE_IP)) {
+                setcookie($sess_name, '', time() - 42000, '/', '.' . $host);
+                // Try without www
+                $bare_host = preg_replace('/^www\./i', '', $host);
+                if ($bare_host !== $host) {
+                    setcookie($sess_name, '', time() - 42000, '/', '.' . $bare_host);
+                }
+            }
         }
+        
+        // 4. Destroy the session
         session_destroy();
+        
         header("Location: ../user/login.php");
         exit;
     }

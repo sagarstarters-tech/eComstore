@@ -4,7 +4,13 @@ ob_start();
 include_once __DIR__ . '/session_setup.php';
 include __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/maintenance.php';
+require_once __DIR__ . '/cart_functions.php';
 checkMaintenanceMode();
+
+// Sync cart to DB on every page load for logged-in users (ensures DB stays current)
+if (isset($_SESSION['user_id'])) {
+    sync_cart_to_db($conn);
+}
 
 // Calculate cart item count and total amount
 $cart_count = 0;
