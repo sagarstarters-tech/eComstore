@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/session_setup.php';
 require_once __DIR__ . '/../includes/db_connect.php';
+require_once __DIR__ . '/../includes/cart_functions.php';
 
 if (empty($global_settings['google_login_enabled']) || $global_settings['google_login_enabled'] !== '1') {
     $_SESSION['error'] = 'Google Login is disabled.';
@@ -158,6 +159,9 @@ if ($result->num_rows > 0) {
         $_SESSION['needs_profile_update'] = true;
     }
     
+    // Load saved cart from DB
+    load_cart_from_db($conn, $user['id']);
+    
     header("Location: ../index.php");
     exit;
 } else {
@@ -178,6 +182,9 @@ if ($result->num_rows > 0) {
         $_SESSION['role'] = 'user';
         $_SESSION['profile_photo'] = $avatar;
         $_SESSION['needs_profile_update'] = true; // New Google users always need to complete profile
+        
+        // Sync any guest cart to the new user's DB record
+        sync_cart_to_db($conn);
         
         $_SESSION['success'] = 'Account created successfully with Google!';
         header("Location: ../index.php");

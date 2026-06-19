@@ -208,6 +208,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Handle GET actions like logout
 if (isset($_GET['action'])) {
     if ($_GET['action'] === 'logout') {
+        // Sync cart to DB before destroying session so deleted items stay deleted
+        if (isset($_SESSION['user_id'])) {
+            sync_cart_to_db($conn);
+        }
+        
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
             setcookie(session_name(), '', time() - 42000,

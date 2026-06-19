@@ -31,28 +31,32 @@ function load_cart_from_db($conn, $user_id) {
             $db_cart = !empty($row['cart_data']) ? json_decode($row['cart_data'], true) : [];
             if (!is_array($db_cart)) $db_cart = [];
             
-            // Merge with current session cart if exists
+            // DB cart is the source of truth.
+            // Only add NEW guest session items (items not already in DB cart).
+            // This prevents deleted items from reappearing after logout/login.
             $session_cart = isset($_SESSION['cart']) && is_array($_SESSION['cart']) ? $_SESSION['cart'] : [];
             
-            $merged_cart = $db_cart;
+            $final_cart = $db_cart;
             foreach ($session_cart as $product_id => $qty) {
-                if (isset($merged_cart[$product_id])) {
-                    $merged_cart[$product_id] += $qty;
-                } else {
-                    $merged_cart[$product_id] = $qty;
+                if (!isset($final_cart[$product_id])) {
+                    // Only add items that are NOT in the DB cart (truly new guest additions)
+                    $final_cart[$product_id] = $qty;
                 }
+                // If item exists in DB cart, keep the DB quantity (don't merge/add)
             }
             
-            $_SESSION['cart'] = $merged_cart;
+            $_SESSION['cart'] = $final_cart;
             
-            // Save back the merged cart
-            $cart_json = json_encode($merged_cart);
+            // Save back the final cart to DB
+            $cart_json = json_encode($final_cart);
             $upd = $conn->prepare("UPDATE users SET cart_data = ? WHERE id = ?");
             if ($upd) {
                 $upd->bind_param("si", $cart_json, $user_id);
                 $upd->execute();
                 $upd->close();
             }
+        } else {
+            // No DB record found — keep session cart as-is (new user scenario)
         }
         $stmt->close();
     }
