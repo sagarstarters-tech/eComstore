@@ -323,6 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             require_once __DIR__ . '/includes/whatsapp_functions.php';
             sendAutomatedWhatsApp($conn, $order_id);
+            sendAdminOrderNotification($conn, $order_id);
             
             require_once 'tracking_module_src/src/Config/TrackingConfig.php';
             require_once 'tracking_module_src/src/Repositories/TrackingRepository.php';

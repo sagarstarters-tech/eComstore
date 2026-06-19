@@ -10,6 +10,9 @@ $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_templa
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS meta_template_lang VARCHAR(10) NOT NULL DEFAULT 'en'");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS waba_id VARCHAR(50) NOT NULL DEFAULT ''");
 $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS wa_header_image_url VARCHAR(500) NOT NULL DEFAULT ''");
+// Admin notification columns (safe migration)
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS admin_whatsapp_number VARCHAR(20) NOT NULL DEFAULT ''");
+$conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS admin_notify_on_new_order TINYINT(1) NOT NULL DEFAULT 1");
 
 // Fetch current settings
 $settings_query = "SELECT * FROM whatsapp_settings WHERE id = 1";
@@ -40,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $meta_template_lang = $conn->real_escape_string($_POST['meta_template_lang'] ?? 'en');
     $waba_id = $conn->real_escape_string($_POST['waba_id'] ?? '');
     $wa_header_image_url = $conn->real_escape_string(trim($_POST['wa_header_image_url'] ?? ''));
+    // Admin notification fields
+    $admin_whatsapp_number = $conn->real_escape_string(trim($_POST['admin_whatsapp_number'] ?? ''));
+    $admin_notify_on_new_order = isset($_POST['admin_notify_on_new_order']) ? 1 : 0;
 
     $update_query = "UPDATE whatsapp_settings SET 
         is_enabled = $is_enabled,
@@ -54,7 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         meta_template_name = '$meta_template_name',
         meta_template_lang = '$meta_template_lang',
         waba_id = '$waba_id',
-        wa_header_image_url = '$wa_header_image_url'
+        wa_header_image_url = '$wa_header_image_url',
+        admin_whatsapp_number = '$admin_whatsapp_number',
+        admin_notify_on_new_order = $admin_notify_on_new_order
         WHERE id = 1";
 
     if ($conn->query($update_query)) {
@@ -185,6 +193,35 @@ $logs = $conn->query($logs_query);
                             <code>{CustomerName}</code>, <code>{OrderID}</code>, <code>{OrderStatus}</code>, <code>{TrackingID}</code>, <code>{OrderAmount}</code>
                         </div>
                     </div>
+
+                    <!-- ===== Admin Order Notification Section ===== -->
+                    <div class="border-top pt-4 mt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h5 class="fw-bold m-0"><i class="fas fa-bell text-warning me-2"></i>Admin Order Notification</h5>
+                                <small class="text-muted">Get WhatsApp alert on admin's phone when a new order is placed.</small>
+                            </div>
+                            <div class="form-check form-switch fs-5 m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" name="admin_notify_on_new_order" id="enableAdminNotify" <?php echo ($settings['admin_notify_on_new_order'] ?? 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label ms-2 fs-6 fw-bold" for="enableAdminNotify">Enable</label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label class="form-label fw-bold d-block">Admin WhatsApp Number</label>
+                                <?php echo render_phone_input('admin_whatsapp_number', $settings['admin_whatsapp_number'] ?? '', true); ?>
+                                <small class="text-muted">Admin's WhatsApp number with country code. New order alerts will be sent here.</small>
+                            </div>
+                            <div class="col-md-6 mb-3 d-flex align-items-center">
+                                <div class="alert alert-info py-2 px-3 mb-0 small w-100 border-0 bg-info bg-opacity-10">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>Note:</strong> Admin gets a simple text message (not template) with order details like Order ID, Customer Name, Amount, and Payment Mode.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ===== End Admin Order Notification Section ===== -->
 
                     <!-- ===== WhatsApp Chat Widget Section ===== -->
                     <div class="border-top pt-4 mt-2">
