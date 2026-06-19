@@ -192,6 +192,10 @@ function sendAutomatedWhatsApp($conn, $order_id) {
  */
 function sendAdminOrderNotification($conn, $order_id) {
     try {
+        // Ensure admin notification columns exist (safe to run every time, no-op if already present)
+        $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS admin_whatsapp_number VARCHAR(20) NOT NULL DEFAULT ''");
+        $conn->query("ALTER TABLE whatsapp_settings ADD COLUMN IF NOT EXISTS admin_notify_on_new_order TINYINT(1) NOT NULL DEFAULT 1");
+
         // Check if feature is enabled and admin number is configured
         $set_q = $conn->query("SELECT * FROM whatsapp_settings WHERE id = 1");
         if (!$set_q || $set_q->num_rows === 0) return false;
